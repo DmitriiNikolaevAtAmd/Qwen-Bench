@@ -68,9 +68,8 @@ htmlcov/
 .pydevproject
 .settings/
 
-output/
-*output*/
 *output*
+!output/.keep
 benchmark_results/
 comparison_plot.png
 comparison_report.md
@@ -99,7 +98,6 @@ results/
 
 *.npy
 *.npz
-data/
 datasets/
 
 .env
