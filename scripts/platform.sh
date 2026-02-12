@@ -26,7 +26,7 @@ run_docker() {
     docker run --rm \
         "${DOCKER_ARGS[@]}" \
         -v "$(pwd)":/workspace/code \
-        -v ~/.cache/huggingface:/root/.cache/huggingface \
+        -v /data:/data \
         -w /workspace/code \
         "$@"
 }
