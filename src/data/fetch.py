@@ -25,7 +25,6 @@ def fetch_pseudo_camera(num_samples: int, output_file: str, max_retries: int = 3
             dataset = load_dataset(
                 "bghira/pseudo-camera-10k",
                 split="train",
-                trust_remote_code=True,
                 download_config=download_config,
             )
             break

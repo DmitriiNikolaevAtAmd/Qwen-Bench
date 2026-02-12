@@ -7,7 +7,7 @@ DATA_SRC="$ROOT_DIR/src/data"
 
 source "$ROOT_DIR/config.env"
 
-export DATA_DIR DATA_SAMPLES TRAIN_SPLIT SL
+export DATA_DIR DATA_SAMPLES TRAIN_SPLIT SL HF_HOME HF_DATASETS_CACHE
 
 echo "Fetching pseudo-camera-10k captions..."
 python3 "$DATA_SRC/fetch.py" \
