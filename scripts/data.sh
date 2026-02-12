@@ -33,6 +33,10 @@ if [ "$NUMPY_MAJOR" -lt 2 ]; then
     python3 -m pip install --no-deps --force-reinstall --no-cache-dir "numpy>=2.2,<2.3"
 fi
 
+# Ensure alive-progress is available
+python3 -c "import alive_progress" 2>/dev/null || \
+    python3 -m pip install -q --no-cache-dir "alive-progress>=3.0"
+
 mkdir -p "$DATA_DIR" "$HF_HOME"
 
 echo "Fetching pseudo-camera-10k captions..."
