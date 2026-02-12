@@ -1,0 +1,22 @@
+services:
+  qwen-bench:
+    build:
+      dockerfile: docker/cuda.Dockerfile
+      context: ..
+    container_name: qwen-bench-cuda
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    ports:
+      - "8000:8000"
+    ipc: host
+    tty: true
+    stdin_open: true
+    command: fish
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: "all"
+            capabilities: [ gpu ]
+    restart: unless-stopped

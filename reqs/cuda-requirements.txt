@@ -1,0 +1,8 @@
+datasets>=2.14.0
+huggingface_hub>=0.13.0
+bitsandbytes>=0.41.0
+seaborn>=0.12.0
+numpy>=1.21.0
+pyyaml>=6.0
+tensorboard
+wandb
