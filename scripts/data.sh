@@ -26,9 +26,6 @@ fi
 # --- Running inside container ---
 export DATA_DIR DATA_SAMPLES TRAIN_SPLIT SL HF_HOME HF_DATASETS_CACHE
 
-# Fix numpy/pandas binary incompatibility (numpy 2.x needed for pre-built pandas)
-python3 -m pip install --no-cache-dir --force-reinstall "numpy>=2.0.0" pandas
-
 mkdir -p "$DATA_DIR" "$HF_HOME"
 
 echo "Fetching pseudo-camera-10k captions..."

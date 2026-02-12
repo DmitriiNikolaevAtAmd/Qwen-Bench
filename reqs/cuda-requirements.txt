@@ -1,9 +1,10 @@
-transformers>=4.40.0
-datasets>=2.14.0
-huggingface_hub>=0.13.0
-bitsandbytes>=0.41.0
-seaborn>=0.12.0
-numpy>=2.0.0
-pyyaml>=6.0
+transformers>=5.0.0
+datasets>=4.0.0
+huggingface_hub>=1.0.0
+bitsandbytes>=0.49.0
+seaborn>=0.13.0
+numpy>=2.0.0,<2.3
+pandas>=2.0.0
+pyyaml>=6.0.2
 tensorboard
 wandb
