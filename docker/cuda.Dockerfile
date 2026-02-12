@@ -33,7 +33,8 @@ COPY reqs/cuda-requirements.txt /workspace/code/reqs/
 RUN pip install --no-cache-dir --upgrade pip packaging wheel setuptools && \
     pip install --no-cache-dir --upgrade-strategy only-if-needed -r reqs/cuda-requirements.txt
 
-RUN pip install --no-cache-dir llamafactory[metrics,deepspeed]
+RUN pip install --no-cache-dir llamafactory[metrics,deepspeed] && \
+    pip install --no-cache-dir "numpy>=2.0.0"
 
 COPY . /workspace/code/
 
