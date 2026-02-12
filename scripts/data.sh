@@ -26,6 +26,13 @@ fi
 # --- Running inside container ---
 export DATA_DIR DATA_SAMPLES TRAIN_SPLIT SL HF_HOME HF_DATASETS_CACHE
 
+# Fix numpy/pandas binary incompatibility in pre-built image
+NUMPY_MAJOR=$(python3 -c "import numpy; print(numpy.__version__.split('.')[0])" 2>/dev/null || echo "0")
+if [ "$NUMPY_MAJOR" -lt 2 ]; then
+    echo "Fixing numpy (v1.x detected, need v2.x for pandas)..."
+    python3 -m pip install --no-deps --force-reinstall --no-cache-dir "numpy>=2.2,<2.3"
+fi
+
 mkdir -p "$DATA_DIR" "$HF_HOME"
 
 echo "Fetching pseudo-camera-10k captions..."
