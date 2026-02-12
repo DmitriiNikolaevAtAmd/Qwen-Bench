@@ -9,30 +9,6 @@ os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "120")
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 
-MODELS = {
-    "meta-llama/Llama-3.1-8B": "meta-llama-llama-31-8b",
-    "Qwen/Qwen2.5-7B": "qwen-qwen25-7b",
-}
-
-
-def fetch_tokenizers(output_dir: str):
-    from transformers import AutoTokenizer
-    
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    
-    for hf_name, local_name in MODELS.items():
-        local_path = output_path / local_name
-        tokenizer_marker = local_path / "tokenizer_config.json"
-        
-        if tokenizer_marker.exists():
-            continue
-        
-        tokenizer = AutoTokenizer.from_pretrained(hf_name, trust_remote_code=True)
-        tokenizer.save_pretrained(local_path)
-    
-    return output_path
-
 
 def fetch_pseudo_camera(num_samples: int, output_file: str, max_retries: int = 3):
     """Fetch bghira/pseudo-camera-10k dataset and extract CogVLM captions to JSONL."""
@@ -116,9 +92,6 @@ def main():
     
     args = parser.parse_args()
     
-    output_dir = str(Path(args.output).parent)
-    
-    fetch_tokenizers(output_dir)
     fetch_pseudo_camera(args.samples, args.output)
 
 
