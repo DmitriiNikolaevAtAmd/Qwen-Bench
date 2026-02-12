@@ -33,8 +33,6 @@ COPY reqs/cuda-requirements.txt /workspace/code/reqs/
 RUN pip install --no-cache-dir --upgrade pip packaging wheel setuptools && \
     pip install --no-cache-dir -r reqs/cuda-requirements.txt
 
-RUN pip install --no-cache-dir "llamafactory[metrics,deepspeed]>=0.9.0,<0.9.3"
-
 # Ensure numpy/pandas stay compatible after all installs (Python 3.10 caps numpy <2.3)
 RUN pip install --no-cache-dir "numpy>=2.0.0,<2.3" "pandas>=2.0.0"
 

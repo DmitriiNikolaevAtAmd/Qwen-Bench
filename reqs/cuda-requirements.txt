@@ -7,5 +7,6 @@ numpy>=2.0.0,<2.3
 pandas>=2.0.0
 pyyaml>=6.0.2
 alive-progress>=3.0
+webdataset>=0.2.100
 tensorboard
 wandb
