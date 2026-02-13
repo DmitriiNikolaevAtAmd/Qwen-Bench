@@ -60,11 +60,15 @@ llamafactory-cli train configs/qwen2_5vl_lora_sft.yaml
 ```
 Qwen-Bench/
 ├── docker/
-│   ├── rocm.Dockerfile
-│   └── cuda.Dockerfile
-├── reqs/
-│   ├── rocm-requirements.txt
-│   └── cuda-requirements.txt
+│   ├── rocm/
+│   │   └── Dockerfile
+│   └── cuda/
+│       └── Dockerfile
+├── requirements/
+│   ├── rocm/
+│   │   └── requirements.txt
+│   └── cuda/
+│       └── requirements.txt
 ├── scripts/
 │   ├── platform.sh
 │   ├── build.sh
@@ -83,7 +87,7 @@ Qwen-Bench/
 
 | Platform | Dockerfile | Base Image |
 |----------|------------|------------|
-| AMD | `docker/rocm.Dockerfile` | `rocm/pytorch:rocm6.4.1_ubuntu22.04_py3.10_pytorch_release_2.6.0` |
-| NVIDIA | `docker/cuda.Dockerfile` | `hiyouga/pytorch:th2.6.0-cu124-flashattn2.7.4-cxx11abi0-devel` |
+| AMD | `docker/rocm/Dockerfile` | `rocm/pytorch:rocm6.4.1_ubuntu22.04_py3.10_pytorch_release_2.6.0` |
+| NVIDIA | `docker/cuda/Dockerfile` | `hiyouga/pytorch:th2.6.0-cu124-flashattn2.7.4-cxx11abi0-devel` |
 
 Both images install LLaMA Factory from PyPI with DeepSpeed and metrics support. The HuggingFace cache is mounted from the host at `~/.cache/huggingface`.

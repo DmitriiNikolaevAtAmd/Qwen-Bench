@@ -36,9 +36,9 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /workspace/code
 WORKDIR /workspace/code
 
-COPY reqs/rocm-requirements.txt /workspace/code/reqs/
+COPY requirements/rocm/requirements.txt /workspace/code/requirements/rocm/
 RUN pip install --no-cache-dir --upgrade pip packaging wheel setuptools && \
-    pip install --no-cache-dir -r reqs/rocm-requirements.txt
+    pip install --no-cache-dir -r requirements/rocm/requirements.txt
 
 # Ensure numpy/pandas stay compatible after all installs (Python 3.10 caps numpy <2.3)
 RUN pip install --no-cache-dir "numpy>=2.0.0,<2.3" "pandas>=2.0.0"

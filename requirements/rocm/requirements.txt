@@ -8,5 +8,6 @@ pandas>=2.0.0
 pyyaml>=6.0.2
 rich>=13.0
 webdataset>=0.2.100
+megatron-energon>=7.0.0
 tensorboard
 wandb
