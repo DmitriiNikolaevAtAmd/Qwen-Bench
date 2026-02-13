@@ -26,19 +26,6 @@ fi
 # --- Running inside container ---
 export DATA_DIR DATA_SAMPLES TRAIN_SPLIT SEED HF_HOME HF_DATASETS_CACHE
 
-# Fix numpy/pandas binary incompatibility in pre-built image
-NUMPY_MAJOR=$(python3 -c "import numpy; print(numpy.__version__.split('.')[0])" 2>/dev/null || echo "0")
-if [ "$NUMPY_MAJOR" -lt 2 ]; then
-    echo "Fixing numpy (v1.x detected, need v2.x for pandas)..."
-    python3 -m pip install --no-deps --force-reinstall --no-cache-dir "numpy>=2.2,<2.3"
-fi
-
-# Ensure runtime dependencies are available
-python3 -c "import rich" 2>/dev/null || \
-    python3 -m pip install -q --no-cache-dir "rich>=13.0"
-python3 -c "import webdataset" 2>/dev/null || \
-    python3 -m pip install -q --no-cache-dir "webdataset>=0.2.100"
-
 mkdir -p "$DATA_DIR" "$HF_HOME"
 
 # Step 1: Fetch image-caption pairs
