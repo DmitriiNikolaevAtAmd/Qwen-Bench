@@ -35,7 +35,7 @@ def _show_config(cfg: DictConfig) -> None:
     yaml_str = OmegaConf.to_yaml(cfg)
     console.print(Panel(
         Syntax(yaml_str, "yaml", theme="monokai", line_numbers=False),
-        title="[dim]resolved config[/dim]",
+        title="[dim]Configuration[/dim]",
         border_style="dim",
         expand=False,
         padding=(0, 1),
@@ -98,6 +98,7 @@ def main(cfg: DictConfig) -> None:
 
     elapsed = time.time() - t_total
     console.rule(f"[bold green]done[/bold green] [dim]{elapsed:.1f}s[/dim]")
+    console.print()
 
 
 if __name__ == "__main__":

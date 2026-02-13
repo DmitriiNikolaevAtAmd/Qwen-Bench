@@ -22,12 +22,12 @@ def run(cfg: DictConfig) -> None:
     wds_dir = f"{data_dir}/webdataset"
 
     console.print()
-    console.print("[bold cyan]1[/bold cyan] [bold]Load[/bold] pseudo-camera-10k images + captions")
+    console.print("[bold cyan]1.[/bold cyan] [bold]Load[/bold] pseudo-camera-10k (images + captions)")
     console.print()
     load_pseudo_camera(num_samples=samples, output_file=raw_jsonl)
 
     console.print()
-    console.print("[bold cyan]2[/bold cyan] [bold]Split[/bold] into WebDataset shards")
+    console.print("[bold cyan]2.[/bold cyan] [bold]Split[/bold] into WebDataset shards")
     console.print()
     split_shards(
         input_file=raw_jsonl,
@@ -39,6 +39,6 @@ def run(cfg: DictConfig) -> None:
     )
 
     console.print()
-    console.print("[bold cyan]3[/bold cyan] [bold]Store[/bold] Megatron-Energon metadata")
+    console.print("[bold cyan]3.[/bold cyan] [bold]Store[/bold] Megatron-Energon metadata")
     console.print()
     store_metadata(input_dir=wds_dir)

@@ -7,7 +7,6 @@ from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
-from rich.table import Table
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 REPO_ID = "bghira/pseudo-camera-10k"
@@ -94,15 +93,6 @@ def load_pseudo_camera(num_samples: int, output_file: str):
 
     if not common_stems:
         raise ValueError("No matched image-caption pairs found")
-
-    sample_table = Table(title="Sample Captions", show_lines=True, expand=False)
-    sample_table.add_column("Image", style="cyan", no_wrap=True)
-    sample_table.add_column("Caption", max_width=80)
-    for stem in common_stems[:3]:
-        caption = caption_files[stem].read_text(encoding="utf-8").strip()
-        preview = caption[:100] + "..." if len(caption) > 100 else caption
-        sample_table.add_row(f"{stem}.png", preview)
-    console.print(sample_table)
 
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
