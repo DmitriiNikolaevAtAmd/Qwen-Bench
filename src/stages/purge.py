@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 log = logging.getLogger(__name__)
 
 
-def run(cfg: DictConfig, *, with_data: bool = False) -> None:
+def run(cfg: DictConfig) -> None:
     output_dir = Path(cfg.paths.output_dir)
     hf_home = Path(cfg.paths.hf_home)
     hf_datasets_cache = Path(cfg.paths.hf_datasets_cache)
@@ -22,7 +22,7 @@ def run(cfg: DictConfig, *, with_data: bool = False) -> None:
             log.info("Removing cache: %s", cache_dir)
             shutil.rmtree(cache_dir)
 
-    if with_data:
+    if cfg.get("with_data", False):
         data_dir = Path(cfg.paths.data_dir)
         if data_dir.exists():
             log.info("Removing data: %s", data_dir)

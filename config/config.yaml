@@ -4,7 +4,8 @@ defaults:
   - training: full
   - _self_
 
-stage: train  # data | train | wrap | purge | all
+stage: train
+with_data: false
 
 paths:
   data_dir: /data/qwen-bench

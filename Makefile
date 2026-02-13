@@ -9,7 +9,7 @@ help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 	@printf "\nExamples:\n"
-	@printf "  make train ARGS=\"training=full\"\n"
+	@printf "  make train ARGS=\"training=lora\"\n"
 	@printf "  make sweep ARGS=\"training.learning_rate=1e-4,3e-4,1e-3\"\n\n"
 
 .PHONY: build
@@ -18,28 +18,32 @@ build: ## Build Docker image (auto-detects GPU platform)
 
 .PHONY: shell
 shell: ## Launch interactive container shell
-	@./scripts/entry.sh
+	@./scripts/shell.sh
 
 .PHONY: data
 data: ## Prepare dataset (download, split, store metadata)
-	@./scripts/run.sh stage=data $(ARGS)
+	@./scripts/cli.sh stage=data $(ARGS)
 
 .PHONY: train
 train: ## Run training with LLaMA Factory
-	@./scripts/run.sh stage=train $(ARGS)
+	@./scripts/cli.sh stage=train $(ARGS)
 
 .PHONY: wrap
 wrap: ## Package outputs into output.zip
-	@./scripts/run.sh stage=wrap $(ARGS)
+	@./scripts/cli.sh stage=wrap $(ARGS)
 
 .PHONY: purge
 purge: ## Remove outputs and caches
-	@./scripts/run.sh stage=purge $(ARGS)
+	@./scripts/cli.sh stage=purge $(ARGS)
+
+.PHONY: purge-all
+purge-all: ## Remove outputs, caches, and data
+	@./scripts/cli.sh stage=purge with_data=true $(ARGS)
 
 .PHONY: all
 all: ## Full pipeline: data -> train -> wrap
-	@./scripts/run.sh stage=all $(ARGS)
+	@./scripts/cli.sh stage=all $(ARGS)
 
 .PHONY: sweep
 sweep: ## Hydra multirun sweep (pass grid via ARGS)
-	@./scripts/run.sh --multirun $(ARGS)
+	@./scripts/cli.sh --multirun $(ARGS)

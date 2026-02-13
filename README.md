@@ -9,8 +9,8 @@ cp secrets.env.example secrets.env
 # set your HF_TOKEN
 
 ./scripts/build.sh
-./scripts/run.sh stage=data
-./scripts/run.sh stage=train
+./scripts/cli.sh stage=data
+./scripts/cli.sh stage=train
 ```
 
 Platform (AMD/NVIDIA) is auto-detected.
@@ -18,10 +18,10 @@ Platform (AMD/NVIDIA) is auto-detected.
 ## CLI
 
 All pipeline stages are driven by a single Hydra-based Python CLI (`python -m src`).
-From the host, use `scripts/run.sh` which launches Docker and forwards all arguments:
+From the host, use `scripts/cli.sh` which launches Docker and forwards all arguments:
 
 ```bash
-./scripts/run.sh stage=<stage> [overrides...]
+./scripts/cli.sh stage=<stage> [overrides...]
 ```
 
 ### Stages
@@ -38,31 +38,31 @@ From the host, use `scripts/run.sh` which launches Docker and forwards all argum
 
 ```bash
 # Prepare data
-./scripts/run.sh stage=data
+./scripts/cli.sh stage=data
 
 # Train with default LoRA config
-./scripts/run.sh stage=train
+./scripts/cli.sh stage=train
 
 # Train with full fine-tuning instead of LoRA
-./scripts/run.sh stage=train training=full
+./scripts/cli.sh stage=train training=full
 
 # Override a single hyperparameter
-./scripts/run.sh stage=train training.learning_rate=1e-3
+./scripts/cli.sh stage=train training.learning_rate=1e-3
 
 # Sweep across learning rates (Hydra multirun)
-./scripts/run.sh --multirun training.learning_rate=1e-4,3e-4,1e-3
+./scripts/cli.sh --multirun training.learning_rate=1e-4,3e-4,1e-3
 
 # Full pipeline: data -> train -> wrap
-./scripts/run.sh stage=all
+./scripts/cli.sh stage=all
 
 # Purge outputs and caches
-./scripts/run.sh stage=purge
+./scripts/cli.sh stage=purge
 ```
 
 ### Inside the container
 
 ```bash
-./scripts/entry.sh
+./scripts/shell.sh
 # then:
 python -m src stage=train
 python -m src stage=train training.learning_rate=1e-3
@@ -87,7 +87,7 @@ config/
 Override any value from the command line:
 
 ```bash
-./scripts/run.sh stage=train \
+./scripts/cli.sh stage=train \
     model.model_name_or_path=Qwen/Qwen2.5-VL-3B-Instruct \
     training.per_device_train_batch_size=2 \
     data.samples=10000
@@ -96,7 +96,7 @@ Override any value from the command line:
 Switch config groups:
 
 ```bash
-./scripts/run.sh stage=train training=full
+./scripts/cli.sh stage=train training=full
 ```
 
 ## Shell Scripts
@@ -105,8 +105,8 @@ Switch config groups:
 |--------|-------------|
 | `scripts/platform.sh` | Auto-detect GPU platform, set Docker vars |
 | `scripts/build.sh` | Build Docker image |
-| `scripts/entry.sh` | Launch interactive container |
-| `scripts/run.sh` | Run any pipeline stage via Docker |
+| `scripts/shell.sh` | Launch interactive container |
+| `scripts/cli.sh` | Run any pipeline stage via Docker |
 
 ### Build
 
@@ -117,7 +117,7 @@ Switch config groups:
 ### Interactive shell
 
 ```bash
-./scripts/entry.sh
+./scripts/shell.sh
 ```
 
 ## Project Structure
