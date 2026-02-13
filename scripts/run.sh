@@ -1,13 +1,4 @@
 #!/bin/bash
-# Unified Docker dispatcher for Qwen-Bench Hydra CLI.
-#
-# Usage:
-#   ./scripts/run.sh stage=data
-#   ./scripts/run.sh stage=train
-#   ./scripts/run.sh stage=all
-#   ./scripts/run.sh stage=train training.learning_rate=1e-3
-#   ./scripts/run.sh stage=train training=full
-#   ./scripts/run.sh --multirun training.learning_rate=1e-4,3e-4,1e-3
 set -e
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
