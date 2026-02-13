@@ -11,6 +11,7 @@ from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCo
 from rich.table import Table
 
 os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "120")
+os.environ.setdefault("HF_HUB_DOWNLOAD_WORKERS", "4")
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 REPO_ID = "bghira/pseudo-camera-10k"
@@ -30,12 +31,22 @@ def fetch_pseudo_camera(num_samples: int, output_file: str):
         expand=False,
     ))
 
+    # Check for HF token (authenticated requests get much higher rate limits)
+    hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token or hf_token == "your_token_here":
+        console.print("[yellow]Warning:[/yellow] No HF_TOKEN set. "
+                      "Downloads may be rate-limited. Set it in secrets.env.")
+    else:
+        console.print("Using HF_TOKEN for authenticated downloads")
+
     # Download both images and captions in one snapshot (parallel, cached)
-    console.print("Downloading from HuggingFace (train/*.png + caption/*.txt)...")
+    workers = int(os.environ.get("HF_HUB_DOWNLOAD_WORKERS", "4"))
+    console.print(f"Downloading from HuggingFace (train/*.png + caption/*.txt, {workers} workers)...")
     local_dir = snapshot_download(
         REPO_ID,
         repo_type="dataset",
         allow_patterns=["train/*.png", "caption/*.txt"],
+        token=hf_token if hf_token and hf_token != "your_token_here" else None,
     )
 
     image_dir = Path(local_dir) / "train"
