@@ -82,11 +82,10 @@ def run(cfg: DictConfig) -> None:
 
     yaml_str = yaml.dump(lf_config, default_flow_style=False, sort_keys=False)
     console.print(Panel(
-        Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False),
+        Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False, background_color="default"),
         title=f"[bold {c.accent}]LLaMA Factory[/bold {c.accent}]",
         border_style=str(c.train),
-        expand=False,
-        padding=(0, 1),
+        padding=(0, 2),
     ))
 
     output_dir = Path(cfg.paths.output_dir)

@@ -42,30 +42,23 @@ def _banner(cfg: DictConfig, stage: str) -> None:
     c = cfg.theme.colors
     color = _stage_color(cfg, stage)
 
-    parts = []
-    parts.append(("", ""))
-    parts.append(("\n", ""))
-    parts.append(("QWEN-BENCH", f"bold {c.primary}"))
-    parts.append(("\n\n", ""))
-    parts.append(("  stage ", "dim"))
-    parts.append((stage, f"bold {color}"))
+    lines = []
+    lines.append(f"[bold {c.primary}]QWEN-BENCH[/bold {c.primary}]")
+    lines.append("")
+    lines.append(f"[dim]stage[/dim]  [bold {color}]{stage}[/bold {color}]")
 
     quote = _fetch_quote()
     if quote:
         text, author = quote
-        parts.append(("\n\n", ""))
-        parts.append((f'  "{text}"', f"italic {c.accent}"))
-        parts.append(("\n", ""))
-        parts.append((f"  -- {author}", f"dim"))
-
-    parts.append(("\n", ""))
+        lines.append("")
+        lines.append(f'[italic {c.accent}]"{text}"[/italic {c.accent}]')
+        lines.append(f"[dim]-- {author}[/dim]")
 
     console.print()
     console.print(Panel(
-        Text.assemble(*parts),
+        "\n".join(lines),
         border_style=str(c.primary),
-        expand=False,
-        padding=(0, 6),
+        padding=(1, 4),
     ))
     console.print()
 
@@ -77,8 +70,7 @@ def _show_config(cfg: DictConfig) -> None:
         Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False, background_color="default"),
         title=f"[bold {cfg.theme.colors.accent}]Configuration[/bold {cfg.theme.colors.accent}]",
         border_style=str(cfg.theme.colors.primary),
-        expand=False,
-        padding=(0, 1),
+        padding=(0, 2),
     ))
     console.print()
 
@@ -157,7 +149,6 @@ def main(cfg: DictConfig) -> None:
     console.print(Panel(
         result,
         border_style=str(c.success),
-        expand=False,
         padding=(0, 2),
     ))
     console.print()

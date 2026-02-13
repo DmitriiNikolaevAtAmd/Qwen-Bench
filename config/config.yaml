@@ -2,7 +2,7 @@ defaults:
   - model: qwen2_5vl_7b
   - data: pseudo_camera
   - training: full
-  - theme: nord
+  - theme: minimal
   - _self_
 
 stage: train

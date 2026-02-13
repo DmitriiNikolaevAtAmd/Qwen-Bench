@@ -102,7 +102,7 @@ def verify_nv_meta(input_dir: Path, syntax_theme: str = "one-dark") -> None:
     if dataset_yaml.exists():
         content = dataset_yaml.read_text().rstrip()
         console.print(Panel(
-            Syntax(content, "yaml", theme=syntax_theme, line_numbers=False),
+            Syntax(content, "yaml", theme=syntax_theme, line_numbers=False, background_color="default"),
             title="[dim]dataset.yaml[/dim]",
             border_style="bright_blue",
             expand=False,
