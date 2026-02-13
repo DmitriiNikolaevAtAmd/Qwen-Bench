@@ -5,9 +5,11 @@ import json
 import math
 import os
 import random
+import shutil
 from pathlib import Path
 
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
 from rich.table import Table
 
@@ -44,6 +46,9 @@ def write_shards(records, output_dir: str, split_name: str, max_per_shard: int, 
     import webdataset as wds
 
     split_dir = Path(output_dir) / split_name
+    # Remove stale shards from previous runs with different params
+    if split_dir.exists():
+        shutil.rmtree(split_dir)
     split_dir.mkdir(parents=True, exist_ok=True)
 
     shard_pattern = str(split_dir / "shard-%05d.tar")
@@ -100,6 +105,25 @@ def main():
     )
     args = parser.parse_args()
 
+    # --- Idempotency check: skip if split_info.json matches current params ---
+    info_path = Path(args.output_dir) / "split_info.json"
+    if info_path.exists():
+        with open(info_path) as f:
+            prev = json.load(f)
+        if (prev.get("seed") == args.seed
+                and prev.get("train_split") == args.train_split
+                and prev.get("max_samples") == args.max_samples
+                and prev.get("max_per_shard") == args.max_per_shard):
+            console.print(Panel(
+                f"[bold green]Skipped[/bold green] -- shards match current params\n\n"
+                f"  Dir:     {args.output_dir}\n"
+                f"  Total:   {prev['total']:,} samples\n"
+                f"  Splits:  train={prev['train']}, val={prev['val']}, test={prev['test']}\n"
+                f"  Seed:    {prev['seed']}",
+                title="encode", expand=False,
+            ))
+            return
+
     console.print(f"Loading records from [cyan]{args.input}[/cyan]...")
     records = load_records(args.input, args.max_samples)
     console.print(f"Loaded [bold]{len(records)}[/bold] records")
@@ -155,13 +179,15 @@ def main():
     table.add_row("[bold]total[/bold]", f"[bold]{sum(w for w, _ in results.values())}[/bold]", "")
     console.print(table)
 
-    # Write split info for downstream tools
+    # Write split info for downstream tools (includes full params for idempotency check)
     split_info = {
         "train": len(train_records),
         "val": len(val_records),
         "test": len(test_records),
         "total": len(records),
         "seed": args.seed,
+        "train_split": args.train_split,
+        "max_samples": args.max_samples,
         "max_per_shard": args.max_per_shard,
     }
     info_path = output_dir / "split_info.json"

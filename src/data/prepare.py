@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
@@ -116,6 +117,17 @@ def main():
             console.print(f"[bold red]FAIL:[/bold red] no tar files in {split_dir}")
             sys.exit(1)
         console.print(f"  {split}: {tar_count} shard(s)")
+
+    # --- Idempotency check: skip if .nv-meta/ already has all required files ---
+    meta_dir = input_dir / ".nv-meta"
+    required = ["dataset.yaml", "split.yaml", ".info.json"]
+    if all((meta_dir / f).exists() for f in required):
+        console.print(Panel(
+            f"[bold green]Skipped[/bold green] -- .nv-meta/ already complete\n\n"
+            + "\n".join(f"  {f}: {(meta_dir / f).stat().st_size:,} B" for f in required),
+            title="prepare", expand=False,
+        ))
+        return
 
     console.print()
     run_energon_prepare(input_dir)

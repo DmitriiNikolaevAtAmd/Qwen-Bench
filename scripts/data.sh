@@ -28,9 +28,9 @@ export DATA_DIR DATA_SAMPLES TRAIN_SPLIT SEED HF_HOME HF_DATASETS_CACHE
 
 mkdir -p "$DATA_DIR" "$HF_HOME"
 
-# Step 1: Fetch image-caption pairs
-echo "=== Step 1/3: Fetching pseudo-camera-10k images + captions ==="
-python3 "$DATA_SRC/fetch.py" \
+# Step 1: Load image-caption pairs
+echo "=== Step 1/3: Loading pseudo-camera-10k images + captions ==="
+python3 "$DATA_SRC/load.py" \
     --samples "${DATA_SAMPLES}" \
     --output "${DATA_DIR}/pseudo-camera-raw.jsonl"
 
