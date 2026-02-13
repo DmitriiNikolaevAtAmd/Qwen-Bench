@@ -1,5 +1,7 @@
+import json
 import os
 import time
+import urllib.request
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -9,6 +11,9 @@ from rich.table import Table
 from rich.text import Text
 
 VALID_STAGES = ("data", "train", "wrap", "purge", "all")
+
+QUOTE_URL = "https://zenquotes.io/api/today"
+QUOTE_TIMEOUT = 2
 
 
 def _get_console():
@@ -20,33 +25,47 @@ def _stage_color(cfg: DictConfig, name: str) -> str:
     return str(getattr(cfg.theme.colors, name, cfg.theme.colors.primary))
 
 
+def _fetch_quote() -> tuple[str, str] | None:
+    try:
+        req = urllib.request.Request(QUOTE_URL, headers={"User-Agent": "qwen-bench"})
+        with urllib.request.urlopen(req, timeout=QUOTE_TIMEOUT) as resp:
+            data = json.loads(resp.read())
+        if data and isinstance(data, list):
+            return data[0].get("q", ""), data[0].get("a", "")
+    except Exception:
+        pass
+    return None
+
+
 def _banner(cfg: DictConfig, stage: str) -> None:
     console = _get_console()
     c = cfg.theme.colors
-    title = Text.assemble(
-        ("Q", f"bold {c.data}"),
-        ("W", f"bold {c.train}"),
-        ("E", f"bold {c.wrap}"),
-        ("N", f"bold {c.success}"),
-        ("-", "dim"),
-        ("B", f"bold {c.primary}"),
-        ("E", f"bold {c.data}"),
-        ("N", f"bold {c.train}"),
-        ("C", f"bold {c.wrap}"),
-        ("H", f"bold {c.success}"),
-    )
     color = _stage_color(cfg, stage)
+
+    parts = []
+    parts.append(("", ""))
+    parts.append(("\n", ""))
+    parts.append(("QWEN-BENCH", f"bold {c.primary}"))
+    parts.append(("\n\n", ""))
+    parts.append(("  stage ", "dim"))
+    parts.append((stage, f"bold {color}"))
+
+    quote = _fetch_quote()
+    if quote:
+        text, author = quote
+        parts.append(("\n\n", ""))
+        parts.append((f'  "{text}"', f"italic {c.accent}"))
+        parts.append(("\n", ""))
+        parts.append((f"  -- {author}", f"dim"))
+
+    parts.append(("\n", ""))
+
     console.print()
     console.print(Panel(
-        Text.assemble(
-            "\n", title, "\n\n",
-            ("  stage ", "dim"),
-            (stage, f"bold {color}"),
-            ("\n", ""),
-        ),
+        Text.assemble(*parts),
         border_style=str(c.primary),
         expand=False,
-        padding=(0, 8),
+        padding=(0, 6),
     ))
     console.print()
 
@@ -55,7 +74,7 @@ def _show_config(cfg: DictConfig) -> None:
     console = _get_console()
     yaml_str = OmegaConf.to_yaml(cfg)
     console.print(Panel(
-        Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False),
+        Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False, background_color="default"),
         title=f"[bold {cfg.theme.colors.accent}]Configuration[/bold {cfg.theme.colors.accent}]",
         border_style=str(cfg.theme.colors.primary),
         expand=False,
