@@ -6,7 +6,6 @@ import shutil
 import sys
 from pathlib import Path
 
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
     Progress, SpinnerColumn, BarColumn, TextColumn,
@@ -14,12 +13,12 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from src import console
+
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 DATA_SAMPLES = int(os.environ.get("DATA_SAMPLES", 50000))
 TRAIN_SPLIT = float(os.environ.get("TRAIN_SPLIT", 0.9))
 SEED = int(os.environ.get("SEED", 42))
-
-console = Console(highlight=False)
 
 
 def load_records(input_file: str, max_samples: int = None):

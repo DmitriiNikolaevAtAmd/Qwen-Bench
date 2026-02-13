@@ -20,4 +20,4 @@ theme = Theme({
     "skip": "bold green",
 })
 
-console = Console(theme=theme, highlight=False)
+console = Console(theme=theme, highlight=False, force_terminal=True, color_system="truecolor")

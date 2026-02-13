@@ -62,17 +62,17 @@ def _show_config(cfg: DictConfig) -> None:
 
 
 def _stage_open(name: str) -> None:
-    color, border = STAGE_STYLE.get(name, ("white", "white"))
-    console.print(f"[bold {color}]<{name}>[/bold {color}]")
+    color, _ = STAGE_STYLE.get(name, ("white", "white"))
+    console.rule(f"[bold {color}]{name}[/bold {color}]", style=color)
     console.print()
 
 
 def _stage_close(name: str, elapsed: float) -> None:
-    color, border = STAGE_STYLE.get(name, ("white", "white"))
+    color, _ = STAGE_STYLE.get(name, ("white", "white"))
     console.print()
-    console.print(
-        f"[bold {color}]</{name}>[/bold {color}]"
-        f"  [dim]{elapsed:.1f}s[/dim]"
+    console.rule(
+        f"[bold {color}]{name}[/bold {color}]  [dim]{elapsed:.1f}s[/dim]",
+        style=color,
     )
     console.print()
 

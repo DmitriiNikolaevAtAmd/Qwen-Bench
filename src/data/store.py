@@ -5,14 +5,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
-DATA_DIR = os.environ.get("DATA_DIR", "/data")
+from src import console
 
-console = Console(highlight=False)
+DATA_DIR = os.environ.get("DATA_DIR", "/data")
 
 SAMPLE_TYPE = "CaptioningSample"
 FIELD_MAP = {"image": "png", "caption": "txt"}

@@ -4,20 +4,18 @@ import os
 import subprocess
 from pathlib import Path
 
-from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
     Progress, SpinnerColumn, BarColumn, TextColumn,
     MofNCompleteColumn, TimeElapsedColumn,
 )
 from rich.table import Table
-from rich.text import Text
+
+from src import console
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 REPO_ID = "bghira/pseudo-camera-10k"
 REPO_URL = f"https://huggingface.co/datasets/{REPO_ID}"
-
-console = Console(highlight=False)
 
 
 def fmt_size(nbytes: int) -> str:
