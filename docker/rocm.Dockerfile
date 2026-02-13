@@ -3,8 +3,10 @@ FROM ${BASE_IMAGE}
 
 RUN apt-get update && apt-get install -y \
     git \
+    git-lfs \
     neovim \
     fish \
+    && git lfs install \
     && rm -rf /var/lib/apt/lists/*
 
 # ENV PYTHONUNBUFFERED=1
