@@ -63,7 +63,7 @@ def write_shards(records, output_dir: str, split_name: str, max_per_shard: int, 
                 image_bytes = img_f.read()
 
             sample = {
-                "__key__": f"sample_{idx:06d}",
+                "__key__": f"{split_name}_{idx:06d}",
                 "png": image_bytes,
                 "txt": caption.encode("utf-8"),
             }

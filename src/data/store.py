@@ -25,6 +25,7 @@ def run_energon_prepare(input_dir: Path) -> None:
         sys.executable, "-m", "megatron.energon.cli.main", "prepare",
         "--non-interactive",
         "--force-overwrite",
+        "--fix-duplicates",
         "--split-parts", "train:train/.*",
         "--split-parts", "val:val/.*",
         "--split-parts", "test:test/.*",
