@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-"""Split image-caption pairs into WebDataset tar shards for Megatron-Energon."""
 import argparse
 import json
-import math
 import os
 import random
 import shutil
+import sys
 from pathlib import Path
 
 from rich.console import Console
@@ -22,7 +20,6 @@ console = Console()
 
 
 def load_records(input_file: str, max_samples: int = None):
-    """Load image-caption records from JSONL."""
     records = []
     with open(input_file, "r", encoding="utf-8") as f:
         for line in f:
@@ -37,16 +34,9 @@ def load_records(input_file: str, max_samples: int = None):
 
 
 def write_shards(records, output_dir: str, split_name: str, max_per_shard: int, progress, task_id):
-    """Write records into WebDataset tar shards.
-
-    Each sample in the tar contains:
-      <key>.png   -- the raw image bytes
-      <key>.txt   -- the caption text
-    """
     import webdataset as wds
 
     split_dir = Path(output_dir) / split_name
-    # Remove stale shards from previous runs with different params
     if split_dir.exists():
         shutil.rmtree(split_dir)
     split_dir.mkdir(parents=True, exist_ok=True)
@@ -54,22 +44,30 @@ def write_shards(records, output_dir: str, split_name: str, max_per_shard: int, 
     shard_pattern = str(split_dir / "shard-%05d.tar")
 
     written = 0
-    with wds.ShardWriter(shard_pattern, maxcount=max_per_shard) as sink:
-        for idx, rec in enumerate(records):
-            image_path = rec["image"]
-            caption = rec["caption"]
+    devnull = open(os.devnull, "w")
+    old_stdout = sys.stdout
+    sys.stdout = devnull
 
-            with open(image_path, "rb") as img_f:
-                image_bytes = img_f.read()
+    try:
+        with wds.ShardWriter(shard_pattern, maxcount=max_per_shard) as sink:
+            for idx, rec in enumerate(records):
+                image_path = rec["image"]
+                caption = rec["caption"]
 
-            sample = {
-                "__key__": f"{split_name}_{idx:06d}",
-                "png": image_bytes,
-                "txt": caption.encode("utf-8"),
-            }
-            sink.write(sample)
-            written += 1
-            progress.advance(task_id)
+                with open(image_path, "rb") as img_f:
+                    image_bytes = img_f.read()
+
+                sample = {
+                    "__key__": f"{split_name}_{idx:06d}",
+                    "png": image_bytes,
+                    "txt": caption.encode("utf-8"),
+                }
+                sink.write(sample)
+                written += 1
+                progress.advance(task_id)
+    finally:
+        sys.stdout = old_stdout
+        devnull.close()
 
     actual_shards = len(list(split_dir.glob("shard-*.tar")))
     return written, actual_shards
@@ -83,19 +81,6 @@ def split_shards(
     max_per_shard: int = 1000,
     seed: int = 42,
 ) -> None:
-    """Split image-caption JSONL into WebDataset tar shards.
-
-    This is the importable entry point used by the Hydra stage.
-
-    Args:
-        input_file: Path to input JSONL with image-caption pairs.
-        output_dir: Output directory for WebDataset shards.
-        max_samples: Maximum number of samples to process.
-        train_split: Fraction of data for the training split.
-        max_per_shard: Maximum samples per tar shard.
-        seed: Random seed for shuffle.
-    """
-    # --- Idempotency check: skip if split_info.json matches current params ---
     info_path = Path(output_dir) / "split_info.json"
     if info_path.exists():
         with open(info_path) as f:
@@ -118,11 +103,10 @@ def split_shards(
     if nv_meta.exists():
         shutil.rmtree(nv_meta)
 
-    console.print(f"Loading records from [cyan]{input_file}[/cyan]...")
-    records = load_records(input_file, max_samples)
-    console.print(f"Loaded [bold]{len(records)}[/bold] records")
+    with console.status("[bold]Loading records...[/bold]"):
+        records = load_records(input_file, max_samples)
+    console.print(f"Loaded [bold]{len(records):,}[/bold] records from [cyan]{input_file}[/cyan]")
 
-    # Shuffle and split
     random.seed(seed)
     random.shuffle(records)
 
@@ -149,7 +133,7 @@ def split_shards(
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
+        BarColumn(bar_width=40),
         MofNCompleteColumn(),
         console=console,
     ) as progress:
@@ -161,19 +145,21 @@ def split_shards(
             )
             results[split_name] = (written, num_shards)
 
-    # Summary table
-    table = Table(title="Encoding Summary")
+    table = Table(title="Shards", show_edge=False, pad_edge=False)
     table.add_column("Split", style="cyan")
-    table.add_column("Samples", justify="right")
+    table.add_column("Samples", justify="right", style="bold")
     table.add_column("Shards", justify="right")
 
     for split_name, (written, num_shards) in results.items():
-        table.add_row(split_name, str(written), str(num_shards))
+        table.add_row(split_name, f"{written:,}", str(num_shards))
 
-    table.add_row("[bold]total[/bold]", f"[bold]{sum(w for w, _ in results.values())}[/bold]", "")
+    table.add_row(
+        "[bold]total[/bold]",
+        f"[bold green]{sum(w for w, _ in results.values()):,}[/bold green]",
+        "",
+    )
     console.print(table)
 
-    # Write split info for downstream tools (includes full params for idempotency check)
     split_info = {
         "train": len(train_records),
         "val": len(val_records),
@@ -187,37 +173,16 @@ def split_shards(
     info_path = out_path / "split_info.json"
     with open(info_path, "w") as f:
         json.dump(split_info, f, indent=2)
-    console.print(f"Split info written to [cyan]{info_path}[/cyan]")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Split image-caption pairs into WebDataset shards")
-    parser.add_argument(
-        "--input", type=str,
-        default=f"{DATA_DIR}/pseudo-camera-raw.jsonl",
-        help="Input JSONL file with image-caption pairs",
-    )
-    parser.add_argument(
-        "--output-dir", type=str,
-        default=f"{DATA_DIR}/webdataset",
-        help="Output directory for WebDataset shards",
-    )
-    parser.add_argument(
-        "--max-samples", type=int, default=DATA_SAMPLES,
-        help=f"Maximum number of samples to process (default: {DATA_SAMPLES})",
-    )
-    parser.add_argument(
-        "--train-split", type=float, default=TRAIN_SPLIT,
-        help=f"Fraction for training data (default: {TRAIN_SPLIT})",
-    )
-    parser.add_argument(
-        "--max-per-shard", type=int, default=1000,
-        help="Maximum samples per tar shard (default: 1000)",
-    )
-    parser.add_argument(
-        "--seed", type=int, default=SEED,
-        help=f"Random seed for shuffle (default: {SEED})",
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", type=str, default=f"{DATA_DIR}/pseudo-camera-raw.jsonl")
+    parser.add_argument("--output-dir", type=str, default=f"{DATA_DIR}/webdataset")
+    parser.add_argument("--max-samples", type=int, default=DATA_SAMPLES)
+    parser.add_argument("--train-split", type=float, default=TRAIN_SPLIT)
+    parser.add_argument("--max-per-shard", type=int, default=1000)
+    parser.add_argument("--seed", type=int, default=SEED)
     args = parser.parse_args()
     split_shards(
         input_file=args.input,

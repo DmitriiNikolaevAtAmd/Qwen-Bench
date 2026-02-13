@@ -4,6 +4,7 @@ from pathlib import Path
 
 import yaml
 from omegaconf import DictConfig, OmegaConf
+from rich.panel import Panel
 from rich.syntax import Syntax
 
 from src import console
@@ -76,7 +77,15 @@ def _build_llama_factory_config(cfg: DictConfig) -> dict:
 
 def run(cfg: DictConfig) -> None:
     lf_config = _build_llama_factory_config(cfg)
-    console.print(Syntax(yaml.dump(lf_config, default_flow_style=False), "yaml", theme="monokai"))
+
+    yaml_str = yaml.dump(lf_config, default_flow_style=False, sort_keys=False)
+    console.print(Panel(
+        Syntax(yaml_str, "yaml", theme="monokai", line_numbers=False),
+        title="[dim]LLaMA Factory config[/dim]",
+        border_style="dim",
+        expand=False,
+        padding=(0, 1),
+    ))
 
     output_dir = Path(cfg.paths.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -88,4 +97,5 @@ def run(cfg: DictConfig) -> None:
 
     cmd = ["llamafactory-cli", "train", str(config_path)]
     console.print(f"Running [bold]{' '.join(cmd)}[/bold]")
+    console.print()
     subprocess.run(cmd, check=True)

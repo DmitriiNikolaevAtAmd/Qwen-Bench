@@ -6,26 +6,29 @@ from omegaconf import DictConfig
 from src import console
 
 
+def _remove(path: Path, label: str) -> None:
+    if path.exists():
+        shutil.rmtree(path)
+        console.print(f"  [red]\u2716[/red]  {label}  [dim]{path}[/dim]")
+    else:
+        console.print(f"  [dim]\u2500[/dim]  {label}  [dim](not found)[/dim]")
+
+
 def run(cfg: DictConfig) -> None:
     output_dir = Path(cfg.paths.output_dir)
     hf_home = Path(cfg.paths.hf_home)
     hf_datasets_cache = Path(cfg.paths.hf_datasets_cache)
 
-    if output_dir.exists():
-        console.print(f"[red]Removing[/red] {output_dir}")
-        shutil.rmtree(output_dir)
+    _remove(output_dir, "output")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for cache_dir in (hf_home, hf_datasets_cache):
-        if cache_dir.exists():
-            console.print(f"[red]Removing[/red] {cache_dir}")
-            shutil.rmtree(cache_dir)
+    _remove(hf_home, "hf cache")
+    _remove(hf_datasets_cache, "datasets cache")
 
     if cfg.get("with_data", False):
         data_dir = Path(cfg.paths.data_dir)
-        if data_dir.exists():
-            console.print(f"[red]Removing[/red] {data_dir}")
-            shutil.rmtree(data_dir)
+        _remove(data_dir, "data")
         data_dir.mkdir(parents=True, exist_ok=True)
 
-    console.print("[bold green]Purge complete[/bold green]")
+    console.print()
+    console.print("  [bold green]\u2714[/bold green]  Purge complete")

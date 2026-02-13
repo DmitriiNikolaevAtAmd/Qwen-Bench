@@ -21,10 +21,14 @@ def run(cfg: DictConfig) -> None:
     raw_jsonl = f"{data_dir}/pseudo-camera-raw.jsonl"
     wds_dir = f"{data_dir}/webdataset"
 
-    console.print("[bold]Step 1/3:[/bold] Loading pseudo-camera-10k images + captions")
+    console.print()
+    console.print("[bold cyan]1[/bold cyan] [bold]Load[/bold] pseudo-camera-10k images + captions")
+    console.print()
     load_pseudo_camera(num_samples=samples, output_file=raw_jsonl)
 
-    console.print("[bold]Step 2/3:[/bold] Splitting into WebDataset shards")
+    console.print()
+    console.print("[bold cyan]2[/bold cyan] [bold]Split[/bold] into WebDataset shards")
+    console.print()
     split_shards(
         input_file=raw_jsonl,
         output_dir=wds_dir,
@@ -34,7 +38,7 @@ def run(cfg: DictConfig) -> None:
         seed=seed,
     )
 
-    console.print("[bold]Step 3/3:[/bold] Storing Megatron-Energon metadata")
+    console.print()
+    console.print("[bold cyan]3[/bold cyan] [bold]Store[/bold] Megatron-Energon metadata")
+    console.print()
     store_metadata(input_dir=wds_dir)
-
-    console.print("[bold green]Data pipeline complete[/bold green]")
