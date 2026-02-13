@@ -11,7 +11,7 @@ from rich.table import Table
 
 VALID_STAGES = ("data", "train", "wrap", "purge", "all")
 
-QUOTE_URL = "https://zenquotes.io/api/today"
+QUOTE_URL = "https://zenquotes.io/api/random"
 QUOTE_TIMEOUT = 2
 
 
