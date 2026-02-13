@@ -1,11 +1,12 @@
-import logging
 import os
 import time
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from rich.console import Console
+from rich.syntax import Syntax
 
-log = logging.getLogger(__name__)
+console = Console()
 
 VALID_STAGES = ("data", "train", "wrap", "purge", "all")
 
@@ -18,8 +19,8 @@ def main(cfg: DictConfig) -> None:
             f"Unknown stage: '{stage}'. Must be one of {VALID_STAGES}"
         )
 
-    log.info("Qwen-Bench stage=%s", stage)
-    log.info("Resolved config:\n%s", OmegaConf.to_yaml(cfg))
+    console.rule(f"[bold cyan]Qwen-Bench[/bold cyan]  stage=[bold]{stage}[/bold]")
+    console.print(Syntax(OmegaConf.to_yaml(cfg), "yaml", theme="monokai", line_numbers=False))
 
     os.environ["HF_HOME"] = str(cfg.paths.hf_home)
     os.environ["HF_DATASETS_CACHE"] = str(cfg.paths.hf_datasets_cache)
@@ -38,14 +39,15 @@ def main(cfg: DictConfig) -> None:
 
     if stage == "all":
         for name in ("data", "train", "wrap"):
-            log.info("=== Pipeline stage: %s ===", name)
+            console.rule(f"[bold yellow]{name}[/bold yellow]")
             t0 = time.time()
             stages[name](cfg)
-            log.info("=== %s completed in %.1fs ===", name, time.time() - t0)
+            console.print(f"[dim]{name} completed in {time.time() - t0:.1f}s[/dim]\n")
     else:
         t0 = time.time()
         stages[stage](cfg)
-        log.info("Stage '%s' completed in %.1fs", stage, time.time() - t0)
+        console.print()
+        console.rule(f"[bold green]done[/bold green] [dim]{time.time() - t0:.1f}s[/dim]")
 
 
 if __name__ == "__main__":
