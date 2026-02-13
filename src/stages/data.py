@@ -1,8 +1,21 @@
 from pathlib import Path
 
 from omegaconf import DictConfig
+from rich.text import Text
 
 from src import console
+
+
+def _step(n: int, title: str, detail: str = "") -> None:
+    label = Text.assemble(
+        (f" {n}. ", "bold bright_cyan on blue"),
+        (" ", ""),
+        (title, "bold bright_white"),
+    )
+    if detail:
+        label.append(f"  {detail}", style="dim")
+    console.print(label)
+    console.print()
 
 
 def run(cfg: DictConfig) -> None:
@@ -21,14 +34,11 @@ def run(cfg: DictConfig) -> None:
     raw_jsonl = f"{data_dir}/pseudo-camera-raw.jsonl"
     wds_dir = f"{data_dir}/webdataset"
 
-    console.print()
-    console.print("[bold cyan]1.[/bold cyan] [bold]Load[/bold] pseudo-camera-10k (images + captions)")
-    console.print()
+    _step(1, "Load", "pseudo-camera-10k (images + captions)")
     load_pseudo_camera(num_samples=samples, output_file=raw_jsonl)
+    console.print()
 
-    console.print()
-    console.print("[bold cyan]2.[/bold cyan] [bold]Split[/bold] into WebDataset shards")
-    console.print()
+    _step(2, "Split", "into WebDataset shards")
     split_shards(
         input_file=raw_jsonl,
         output_dir=wds_dir,
@@ -37,8 +47,7 @@ def run(cfg: DictConfig) -> None:
         max_per_shard=1000,
         seed=seed,
     )
+    console.print()
 
-    console.print()
-    console.print("[bold cyan]3.[/bold cyan] [bold]Store[/bold] Megatron-Energon metadata")
-    console.print()
+    _step(3, "Store", "Megatron-Energon metadata")
     store_metadata(input_dir=wds_dir)

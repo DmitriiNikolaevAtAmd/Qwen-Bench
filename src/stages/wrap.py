@@ -2,7 +2,12 @@ import zipfile
 from pathlib import Path
 
 from omegaconf import DictConfig
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
+from rich.panel import Panel
+from rich.progress import (
+    Progress, SpinnerColumn, BarColumn, TextColumn,
+    MofNCompleteColumn, TimeElapsedColumn,
+)
+from rich.table import Table
 
 from src import console
 
@@ -30,10 +35,11 @@ def run(cfg: DictConfig) -> None:
     archive_path = Path("output.zip")
 
     with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(bar_width=40),
+        SpinnerColumn(style="bright_yellow"),
+        TextColumn("[bold bright_white]{task.description}[/bold bright_white]"),
+        BarColumn(bar_width=40, style="bright_blue", complete_style="bright_yellow", finished_style="bright_green"),
         MofNCompleteColumn(),
+        TimeElapsedColumn(),
         console=console,
     ) as progress:
         task = progress.add_task("Packaging", total=len(files))
@@ -42,8 +48,17 @@ def run(cfg: DictConfig) -> None:
                 zf.write(fpath, fpath.relative_to(output_dir.parent))
                 progress.advance(task)
 
-    size_str = _fmt_size(archive_path.stat().st_size)
-    console.print(
-        f"[bold green]{archive_path}[/bold green]  "
-        f"[dim]{len(files)} files, {size_str}[/dim]"
-    )
+    info = Table.grid(padding=(0, 2))
+    info.add_column(style="bright_white")
+    info.add_column(style="bright_cyan")
+    info.add_row("archive", str(archive_path))
+    info.add_row("files", f"{len(files):,}")
+    info.add_row("size", _fmt_size(archive_path.stat().st_size))
+
+    console.print(Panel(
+        info,
+        title="[bold bright_green]Packaged[/bold bright_green]",
+        border_style="bright_yellow",
+        expand=False,
+        padding=(0, 2),
+    ))

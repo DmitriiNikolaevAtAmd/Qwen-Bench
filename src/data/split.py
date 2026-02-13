@@ -8,7 +8,10 @@ from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
+from rich.progress import (
+    Progress, SpinnerColumn, BarColumn, TextColumn,
+    MofNCompleteColumn, TimeElapsedColumn,
+)
 from rich.table import Table
 
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
@@ -16,7 +19,7 @@ DATA_SAMPLES = int(os.environ.get("DATA_SAMPLES", 50000))
 TRAIN_SPLIT = float(os.environ.get("TRAIN_SPLIT", 0.9))
 SEED = int(os.environ.get("SEED", 42))
 
-console = Console()
+console = Console(highlight=False)
 
 
 def load_records(input_file: str, max_samples: int = None):
@@ -89,13 +92,23 @@ def split_shards(
                 and prev.get("train_split") == train_split
                 and prev.get("max_samples") == max_samples
                 and prev.get("max_per_shard") == max_per_shard):
+
+            info = Table.grid(padding=(0, 2))
+            info.add_column(style="bright_white")
+            info.add_column(style="bright_cyan")
+            info.add_row("dir", str(output_dir))
+            info.add_row("total", f"{prev['total']:,}")
+            info.add_row("train", f"{prev['train']:,}")
+            info.add_row("val", f"{prev['val']:,}")
+            info.add_row("test", f"{prev['test']:,}")
+            info.add_row("seed", str(prev['seed']))
+
             console.print(Panel(
-                f"[bold green]Skipped[/bold green] -- shards match current params\n\n"
-                f"  Dir:     {output_dir}\n"
-                f"  Total:   {prev['total']:,} samples\n"
-                f"  Splits:  train={prev['train']}, val={prev['val']}, test={prev['test']}\n"
-                f"  Seed:    {prev['seed']}",
-                title="split", expand=False,
+                info,
+                title="[bold bright_green]Skipped -- shards match[/bold bright_green]",
+                border_style="green",
+                expand=False,
+                padding=(0, 2),
             ))
             return
 
@@ -103,9 +116,15 @@ def split_shards(
     if nv_meta.exists():
         shutil.rmtree(nv_meta)
 
-    with console.status("[bold]Loading records...[/bold]"):
+    with console.status(
+        "[bold bright_cyan]Loading records...[/bold bright_cyan]",
+        spinner="dots",
+    ):
         records = load_records(input_file, max_samples)
-    console.print(f"Loaded [bold]{len(records):,}[/bold] records from [cyan]{input_file}[/cyan]")
+    console.print(
+        f"  [bold bright_white]{len(records):,}[/bold bright_white] records "
+        f"from [cyan]{input_file}[/cyan]"
+    )
 
     random.seed(seed)
     random.shuffle(records)
@@ -131,10 +150,11 @@ def split_shards(
     total_samples = sum(len(r) for _, r in splits)
 
     with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(bar_width=40),
+        SpinnerColumn(style="bright_magenta"),
+        TextColumn("[bold bright_white]{task.description}[/bold bright_white]"),
+        BarColumn(bar_width=40, style="bright_blue", complete_style="bright_magenta", finished_style="bright_green"),
         MofNCompleteColumn(),
+        TimeElapsedColumn(),
         console=console,
     ) as progress:
         task = progress.add_task("Writing shards", total=total_samples)
@@ -145,18 +165,24 @@ def split_shards(
             )
             results[split_name] = (written, num_shards)
 
-    table = Table(title="Shards", show_edge=False, pad_edge=False)
-    table.add_column("Split", style="cyan")
-    table.add_column("Samples", justify="right", style="bold")
-    table.add_column("Shards", justify="right")
+    table = Table(
+        title="[bold bright_white]Shards[/bold bright_white]",
+        border_style="bright_blue",
+        header_style="bold bright_cyan",
+        show_edge=True,
+        padding=(0, 1),
+    )
+    table.add_column("Split", style="bright_white")
+    table.add_column("Samples", justify="right", style="bold bright_magenta")
+    table.add_column("Shards", justify="right", style="bright_cyan")
 
     for split_name, (written, num_shards) in results.items():
         table.add_row(split_name, f"{written:,}", str(num_shards))
 
     table.add_row(
         "[bold]total[/bold]",
-        f"[bold green]{sum(w for w, _ in results.values()):,}[/bold green]",
-        "",
+        f"[bold bright_green]{sum(w for w, _ in results.values()):,}[/bold bright_green]",
+        f"[bold]{sum(s for _, s in results.values())}[/bold]",
     )
     console.print(table)
 

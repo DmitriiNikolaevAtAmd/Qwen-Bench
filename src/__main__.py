@@ -3,31 +3,49 @@ import time
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
-from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
+from rich.table import Table
 from rich.text import Text
 
-console = Console()
+from src import console
 
 VALID_STAGES = ("data", "train", "wrap", "purge", "all")
 
-STAGE_COLORS = {
-    "data": "blue",
-    "train": "magenta",
-    "wrap": "yellow",
-    "purge": "red",
+STAGE_STYLE = {
+    "data": ("bright_blue", "blue"),
+    "train": ("bright_magenta", "magenta"),
+    "wrap": ("bright_yellow", "yellow"),
+    "purge": ("bright_red", "red"),
 }
 
 
 def _banner(stage: str) -> None:
-    title = Text()
-    title.append("QWEN", style="bold cyan")
-    title.append("-", style="dim")
-    title.append("BENCH", style="bold white")
+    color, _ = STAGE_STYLE.get(stage, ("white", "white"))
+    title = Text.assemble(
+        ("Q", "bold bright_cyan"),
+        ("W", "bold bright_blue"),
+        ("E", "bold bright_magenta"),
+        ("N", "bold bright_yellow"),
+        ("-", "dim"),
+        ("B", "bold bright_green"),
+        ("E", "bold bright_cyan"),
+        ("N", "bold bright_blue"),
+        ("C", "bold bright_magenta"),
+        ("H", "bold bright_yellow"),
+    )
     console.print()
-    console.rule(title)
-    console.print(f"  stage = [bold]{stage}[/bold]", highlight=False)
+    console.print(Panel(
+        Text.assemble(
+            "\n", title, "\n\n",
+            ("  stage ", "dim"),
+            (stage, f"bold {color}"),
+            ("\n", ""),
+        ),
+        border_style="bright_cyan",
+        expand=False,
+        padding=(0, 8),
+    ))
     console.print()
 
 
@@ -35,8 +53,8 @@ def _show_config(cfg: DictConfig) -> None:
     yaml_str = OmegaConf.to_yaml(cfg)
     console.print(Panel(
         Syntax(yaml_str, "yaml", theme="monokai", line_numbers=False),
-        title="[dim]Configuration[/dim]",
-        border_style="dim",
+        title="[bold bright_white]Configuration[/bold bright_white]",
+        border_style="bright_cyan",
         expand=False,
         padding=(0, 1),
     ))
@@ -44,15 +62,18 @@ def _show_config(cfg: DictConfig) -> None:
 
 
 def _stage_open(name: str) -> None:
-    color = STAGE_COLORS.get(name, "white")
+    color, border = STAGE_STYLE.get(name, ("white", "white"))
     console.print(f"[bold {color}]<{name}>[/bold {color}]")
     console.print()
 
 
 def _stage_close(name: str, elapsed: float) -> None:
-    color = STAGE_COLORS.get(name, "white")
+    color, border = STAGE_STYLE.get(name, ("white", "white"))
     console.print()
-    console.print(f"[bold {color}]</{name}>[/bold {color}]  [dim]{elapsed:.1f}s[/dim]")
+    console.print(
+        f"[bold {color}]</{name}>[/bold {color}]"
+        f"  [dim]{elapsed:.1f}s[/dim]"
+    )
     console.print()
 
 
@@ -97,7 +118,18 @@ def main(cfg: DictConfig) -> None:
         _stage_close(stage, time.time() - t0)
 
     elapsed = time.time() - t_total
-    console.rule(f"[bold green]done[/bold green] [dim]{elapsed:.1f}s[/dim]")
+
+    result = Table.grid(padding=(0, 1))
+    result.add_row(
+        "[bold bright_green]done[/bold bright_green]",
+        f"[dim]{elapsed:.1f}s[/dim]",
+    )
+    console.print(Panel(
+        result,
+        border_style="bright_green",
+        expand=False,
+        padding=(0, 2),
+    ))
     console.print()
 
 
