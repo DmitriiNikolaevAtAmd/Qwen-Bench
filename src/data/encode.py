@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack cleaned image-caption pairs into WebDataset tar shards for Megatron-Energon."""
+"""Pack image-caption pairs into WebDataset tar shards for Megatron-Energon."""
 import argparse
 import json
 import math
@@ -7,10 +7,16 @@ import os
 import random
 from pathlib import Path
 
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
+from rich.table import Table
+
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
 DATA_SAMPLES = int(os.environ.get("DATA_SAMPLES", 50000))
 TRAIN_SPLIT = float(os.environ.get("TRAIN_SPLIT", 0.9))
 SEED = int(os.environ.get("SEED", 42))
+
+console = Console()
 
 
 def load_records(input_file: str, max_samples: int = None):
@@ -28,7 +34,7 @@ def load_records(input_file: str, max_samples: int = None):
     return records
 
 
-def write_shards(records, output_dir: str, split_name: str, max_per_shard: int = 1000):
+def write_shards(records, output_dir: str, split_name: str, max_per_shard: int, progress, task_id):
     """Write records into WebDataset tar shards.
 
     Each sample in the tar contains:
@@ -40,8 +46,7 @@ def write_shards(records, output_dir: str, split_name: str, max_per_shard: int =
     split_dir = Path(output_dir) / split_name
     split_dir.mkdir(parents=True, exist_ok=True)
 
-    num_shards = max(1, math.ceil(len(records) / max_per_shard))
-    shard_pattern = str(split_dir / f"shard-%05d.tar")
+    shard_pattern = str(split_dir / "shard-%05d.tar")
 
     written = 0
     with wds.ShardWriter(shard_pattern, maxcount=max_per_shard) as sink:
@@ -59,18 +64,18 @@ def write_shards(records, output_dir: str, split_name: str, max_per_shard: int =
             }
             sink.write(sample)
             written += 1
+            progress.advance(task_id)
 
     actual_shards = len(list(split_dir.glob("shard-*.tar")))
-    print(f"  {split_name}: {written} samples -> {actual_shards} shards in {split_dir}")
-    return actual_shards
+    return written, actual_shards
 
 
 def main():
     parser = argparse.ArgumentParser(description="Encode image-caption pairs into WebDataset shards")
     parser.add_argument(
         "--input", type=str,
-        default=f"{DATA_DIR}/pseudo-camera.jsonl",
-        help="Input clean JSONL file",
+        default=f"{DATA_DIR}/pseudo-camera-raw.jsonl",
+        help="Input JSONL file with image-caption pairs",
     )
     parser.add_argument(
         "--output-dir", type=str,
@@ -95,9 +100,9 @@ def main():
     )
     args = parser.parse_args()
 
-    print(f"Loading records from {args.input}...")
+    console.print(f"Loading records from [cyan]{args.input}[/cyan]...")
     records = load_records(args.input, args.max_samples)
-    print(f"Loaded {len(records)} records")
+    console.print(f"Loaded [bold]{len(records)}[/bold] records")
 
     # Shuffle and split
     random.seed(args.seed)
@@ -111,14 +116,44 @@ def main():
     val_records = records[n_train:n_train + n_val]
     test_records = records[n_train + n_val:]
 
-    print(f"Split: train={len(train_records)}, val={len(val_records)}, test={len(test_records)}")
+    splits = [
+        ("train", train_records),
+        ("val", val_records),
+        ("test", test_records),
+    ]
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    write_shards(train_records, args.output_dir, "train", args.max_per_shard)
-    write_shards(val_records, args.output_dir, "val", args.max_per_shard)
-    write_shards(test_records, args.output_dir, "test", args.max_per_shard)
+    results = {}
+    total_samples = sum(len(r) for _, r in splits)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Writing shards", total=total_samples)
+        for split_name, split_records in splits:
+            written, num_shards = write_shards(
+                split_records, str(output_dir), split_name, args.max_per_shard,
+                progress, task,
+            )
+            results[split_name] = (written, num_shards)
+
+    # Summary table
+    table = Table(title="Encoding Summary")
+    table.add_column("Split", style="cyan")
+    table.add_column("Samples", justify="right")
+    table.add_column("Shards", justify="right")
+
+    for split_name, (written, num_shards) in results.items():
+        table.add_row(split_name, str(written), str(num_shards))
+
+    table.add_row("[bold]total[/bold]", f"[bold]{sum(w for w, _ in results.values())}[/bold]", "")
+    console.print(table)
 
     # Write split info for downstream tools
     split_info = {
@@ -132,7 +167,7 @@ def main():
     info_path = output_dir / "split_info.json"
     with open(info_path, "w") as f:
         json.dump(split_info, f, indent=2)
-    print(f"Split info written to {info_path}")
+    console.print(f"Split info written to [cyan]{info_path}[/cyan]")
 
 
 if __name__ == "__main__":

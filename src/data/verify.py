@@ -1,26 +1,32 @@
 #!/usr/bin/env python3
-"""Verify WebDataset tar shards: integrity, image-caption pairing, sample counts."""
+"""Verify WebDataset tar shards: completeness, integrity, image-caption pairing."""
 import argparse
-import io
 import json
 import os
 import sys
 import tarfile
 from pathlib import Path
 
+from rich.console import Console
+from rich.rule import Rule
+from rich.table import Table
+
 DATA_DIR = os.environ.get("DATA_DIR", "/data")
+
+console = Console()
 
 
 def verify_shard(tar_path: str) -> dict:
-    """Verify a single tar shard. Returns dict with counts and errors."""
+    """Verify a single tar shard. Returns dict with counts, sizes, and errors."""
     samples = 0
+    total_img_bytes = 0
+    total_txt_bytes = 0
     errors = []
 
     try:
         with tarfile.open(tar_path, "r") as tar:
             members = {m.name: m for m in tar.getmembers()}
 
-            # Group by key (stem before the extension)
             keys = set()
             for name in members:
                 key = name.rsplit(".", 1)[0] if "." in name else name
@@ -37,8 +43,9 @@ def verify_shard(tar_path: str) -> dict:
                     errors.append(f"{key}: missing .txt")
                     continue
 
-                # Check image is non-empty and starts with PNG header
                 png_member = members[png_name]
+                txt_member = members[txt_name]
+
                 if png_member.size == 0:
                     errors.append(f"{key}: empty .png")
                     continue
@@ -52,53 +59,76 @@ def verify_shard(tar_path: str) -> dict:
                     errors.append(f"{key}: invalid PNG header")
                     continue
 
-                # Check caption is non-empty
-                txt_member = members[txt_name]
                 if txt_member.size == 0:
                     errors.append(f"{key}: empty .txt")
                     continue
 
+                total_img_bytes += png_member.size
+                total_txt_bytes += txt_member.size
                 samples += 1
 
     except Exception as e:
         errors.append(f"Failed to open tar: {e}")
 
-    return {"samples": samples, "errors": errors, "path": tar_path}
+    return {
+        "samples": samples,
+        "img_bytes": total_img_bytes,
+        "txt_bytes": total_txt_bytes,
+        "errors": errors,
+        "path": tar_path,
+    }
 
 
-def verify_split(split_dir: str) -> bool:
-    """Verify all shards in a split directory."""
+def fmt_size(nbytes: int) -> str:
+    """Format byte count as human-readable string."""
+    if nbytes >= 1 << 30:
+        return f"{nbytes / (1 << 30):.1f} GB"
+    if nbytes >= 1 << 20:
+        return f"{nbytes / (1 << 20):.1f} MB"
+    if nbytes >= 1 << 10:
+        return f"{nbytes / (1 << 10):.1f} KB"
+    return f"{nbytes} B"
+
+
+def verify_split(split_dir: str, expected_count: int = None) -> dict:
+    """Verify all shards in a split directory. Returns result dict."""
     split_path = Path(split_dir)
     tar_files = sorted(split_path.glob("shard-*.tar"))
 
     if not tar_files:
-        print(f"  No shards found in {split_dir}")
-        return False
+        return {
+            "shards": 0, "samples": 0, "expected": expected_count,
+            "img_bytes": 0, "txt_bytes": 0, "disk_bytes": 0,
+            "errors": ["No shards found"],
+        }
 
     total_samples = 0
-    total_errors = []
-    print(f"  Checking {len(tar_files)} shards...")
+    total_img_bytes = 0
+    total_txt_bytes = 0
+    all_errors = []
 
     for tar_file in tar_files:
         result = verify_shard(str(tar_file))
         total_samples += result["samples"]
+        total_img_bytes += result["img_bytes"]
+        total_txt_bytes += result["txt_bytes"]
         if result["errors"]:
-            total_errors.extend(
-                f"{tar_file.name}: {e}" for e in result["errors"]
-            )
+            all_errors.extend(f"{tar_file.name}: {e}" for e in result["errors"])
 
-    print(f"  Samples: {total_samples}")
+    disk_bytes = sum(f.stat().st_size for f in tar_files)
 
-    if total_errors:
-        print(f"  Errors ({len(total_errors)}):")
-        for e in total_errors[:10]:
-            print(f"    - {e}")
-        if len(total_errors) > 10:
-            print(f"    ... and {len(total_errors) - 10} more")
-        return False
+    if expected_count is not None and total_samples != expected_count:
+        all_errors.append(f"Count mismatch: {total_samples} != expected {expected_count}")
 
-    print(f"  OK")
-    return True
+    return {
+        "shards": len(tar_files),
+        "samples": total_samples,
+        "expected": expected_count,
+        "img_bytes": total_img_bytes,
+        "txt_bytes": total_txt_bytes,
+        "disk_bytes": disk_bytes,
+        "errors": all_errors,
+    }
 
 
 def main():
@@ -112,35 +142,92 @@ def main():
 
     input_dir = Path(args.input_dir)
     if not input_dir.exists():
-        print(f"FAIL: directory not found: {input_dir}")
+        console.print(f"[bold red]FAIL:[/bold red] directory not found: {input_dir}")
         sys.exit(1)
 
-    # Check split info
+    # Load expected counts from split_info.json
     info_path = input_dir / "split_info.json"
+    expected = {}
     if info_path.exists():
         with open(info_path) as f:
             info = json.load(f)
-        print(f"Split info: {json.dumps(info)}")
+        expected = {k: info[k] for k in ["train", "val", "test"] if k in info}
     else:
-        print("Warning: split_info.json not found")
+        console.print("[yellow]Warning:[/yellow] split_info.json not found (cannot check completeness)")
 
-    all_ok = True
+    # Verify each split
+    split_results = {}
     for split_name in ["train", "val", "test"]:
         split_dir = input_dir / split_name
         if not split_dir.exists():
-            print(f"\n[{split_name}] Skipped (not found)")
             continue
+        split_results[split_name] = verify_split(str(split_dir), expected.get(split_name))
 
-        print(f"\n[{split_name}]")
-        ok = verify_split(str(split_dir))
+    # Build results table
+    table = Table(title="Verification Results")
+    table.add_column("Split", style="cyan")
+    table.add_column("Shards", justify="right")
+    table.add_column("Samples", justify="right")
+    table.add_column("Expected", justify="right")
+    table.add_column("Images", justify="right")
+    table.add_column("Captions", justify="right")
+    table.add_column("Disk", justify="right")
+    table.add_column("Status", justify="center")
+
+    all_ok = True
+    grand_samples = 0
+    grand_disk = 0
+
+    for split_name, res in split_results.items():
+        ok = len(res["errors"]) == 0
         if not ok:
             all_ok = False
+        grand_samples += res["samples"]
+        grand_disk += res["disk_bytes"]
 
-    print()
+        status = "[bold green]PASS[/bold green]" if ok else "[bold red]FAIL[/bold red]"
+        exp_str = str(res["expected"]) if res["expected"] is not None else "-"
+
+        table.add_row(
+            split_name,
+            str(res["shards"]),
+            str(res["samples"]),
+            exp_str,
+            fmt_size(res["img_bytes"]),
+            fmt_size(res["txt_bytes"]),
+            fmt_size(res["disk_bytes"]),
+            status,
+        )
+
+    total_expected = info.get("total", None) if info_path.exists() else None
+    exp_total_str = str(total_expected) if total_expected is not None else "-"
+
+    table.add_row(
+        "[bold]total[/bold]", "",
+        f"[bold]{grand_samples}[/bold]",
+        f"[bold]{exp_total_str}[/bold]",
+        "", "",
+        f"[bold]{fmt_size(grand_disk)}[/bold]",
+        "",
+    )
+
+    console.print(table)
+
+    # Print errors if any
+    for split_name, res in split_results.items():
+        if res["errors"]:
+            console.print(f"\n[bold red]Errors in {split_name}:[/bold red]")
+            for e in res["errors"][:10]:
+                console.print(f"  - {e}")
+            if len(res["errors"]) > 10:
+                console.print(f"  ... and {len(res['errors']) - 10} more")
+
+    # Final verdict
+    console.print()
     if all_ok:
-        print("PASS: All shards verified OK")
+        console.print(Rule("[bold green]PASS: All data downloaded and stored correctly[/bold green]"))
     else:
-        print("FAIL: Some shards have errors")
+        console.print(Rule("[bold red]FAIL: Some data is missing or corrupted[/bold red]"))
 
     sys.exit(0 if all_ok else 1)
 
