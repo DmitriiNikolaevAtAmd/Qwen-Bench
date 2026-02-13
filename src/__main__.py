@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 VALID_STAGES = ("data", "train", "wrap", "purge", "all")
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config")
+@hydra.main(version_base=None, config_path="../config", config_name="config")
 def main(cfg: DictConfig) -> None:
     stage = cfg.stage
     if stage not in VALID_STAGES:

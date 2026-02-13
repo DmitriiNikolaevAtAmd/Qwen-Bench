@@ -70,10 +70,10 @@ python -m src stage=train training.learning_rate=1e-3
 
 ## Configuration
 
-Configuration uses [Hydra](https://hydra.cc/) with hierarchical YAML files under `conf/`:
+Configuration uses [Hydra](https://hydra.cc/) with hierarchical YAML files under `config/`:
 
 ```
-conf/
+config/
 ├── config.yaml              # defaults, paths, stage selector
 ├── model/
 │   └── qwen2_5vl_7b.yaml   # model_name_or_path, template
@@ -124,7 +124,7 @@ Switch config groups:
 
 ```
 Qwen-Bench/
-├── conf/                        # Hydra config hierarchy
+├── config/                      # Hydra config hierarchy
 │   ├── config.yaml
 │   ├── model/
 │   │   └── qwen2_5vl_7b.yaml
