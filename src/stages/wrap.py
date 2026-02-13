@@ -36,9 +36,9 @@ def run(cfg: DictConfig) -> None:
     archive_path = Path("output.zip")
 
     with Progress(
-        SpinnerColumn(style=str(c.wrap)),
-        TextColumn(f"[bold {c.accent}]{{task.description}}[/bold {c.accent}]"),
-        BarColumn(bar_width=40, style=str(c.primary), complete_style=str(c.wrap), finished_style=str(c.success)),
+        SpinnerColumn(),
+        TextColumn("{task.description}"),
+        BarColumn(bar_width=40),
         MofNCompleteColumn(),
         TimeElapsedColumn(),
         console=console,
@@ -50,16 +50,15 @@ def run(cfg: DictConfig) -> None:
                 progress.advance(task)
 
     info = Table.grid(padding=(0, 2))
-    info.add_column(style=str(c.accent))
-    info.add_column(style=str(c.primary))
+    info.add_column(style="dim")
+    info.add_column()
     info.add_row("archive", str(archive_path))
     info.add_row("files", f"{len(files):,}")
     info.add_row("size", _fmt_size(archive_path.stat().st_size))
 
     console.print(Panel(
         info,
-        title=f"[bold {c.success}]Packaged[/bold {c.success}]",
-        border_style=str(c.wrap),
-        expand=False,
-        padding=(0, 2),
+        title=f"[{c.success}]Packaged[/{c.success}]",
+        border_style="dim",
+        padding=(1, 2),
     ))

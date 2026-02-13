@@ -30,24 +30,20 @@ def run_energon_prepare(input_dir: Path) -> None:
         str(input_dir),
     ]
 
-    with console.status(
-        "[bold bright_cyan]Running energon prepare...[/bold bright_cyan]",
-        spinner="dots",
-    ):
+    with console.status("[bold]Running energon prepare...[/bold]", spinner="dots"):
         result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:
         output = (result.stdout.strip() + "\n" + result.stderr.strip()).strip()
         console.print(Panel(
             output,
-            title="[bold bright_red]energon prepare failed[/bold bright_red]",
-            border_style="bright_red",
-            expand=False,
+            title="[red]energon prepare failed[/red]",
+            border_style="red",
             padding=(1, 2),
         ))
         sys.exit(result.returncode)
 
-    console.print("  [bright_green]ok[/bright_green]  energon prepare")
+    console.print("  [green]ok[/green]  energon prepare")
 
 
 def verify_nv_meta(input_dir: Path, syntax_theme: str = "one-dark") -> None:
@@ -55,12 +51,12 @@ def verify_nv_meta(input_dir: Path, syntax_theme: str = "one-dark") -> None:
     expected_files = ["dataset.yaml", "split.yaml", ".info.json"]
 
     table = Table(
-        title="[bold bright_white]Metadata[/bold bright_white]",
-        border_style="bright_blue",
-        header_style="bold bright_cyan",
+        title="[bold]Metadata[/bold]",
+        border_style="dim",
+        header_style="bold",
         padding=(0, 1),
     )
-    table.add_column("File", style="cyan")
+    table.add_column("File")
     table.add_column("Status", justify="center")
     table.add_column("Size", justify="right", style="dim")
 
@@ -69,33 +65,21 @@ def verify_nv_meta(input_dir: Path, syntax_theme: str = "one-dark") -> None:
         fpath = meta_dir / fname
         if fpath.exists():
             size = fpath.stat().st_size
-            table.add_row(
-                f".nv-meta/{fname}",
-                "[bold bright_green]OK[/bold bright_green]",
-                f"{size:,} B",
-            )
+            table.add_row(f".nv-meta/{fname}", "[green]OK[/green]", f"{size:,} B")
         else:
-            table.add_row(
-                f".nv-meta/{fname}",
-                "[bold bright_red]MISSING[/bold bright_red]",
-                "-",
-            )
+            table.add_row(f".nv-meta/{fname}", "[red]MISSING[/red]", "-")
             all_ok = False
 
     for fname in ["index.sqlite", "index.uuid"]:
         fpath = meta_dir / fname
         if fpath.exists():
             size = fpath.stat().st_size
-            table.add_row(
-                f".nv-meta/{fname}",
-                "[bold bright_green]OK[/bold bright_green]",
-                f"{size:,} B",
-            )
+            table.add_row(f".nv-meta/{fname}", "[green]OK[/green]", f"{size:,} B")
 
     console.print(table)
 
     if not all_ok:
-        console.print("[bold bright_red]Some metadata files are missing[/bold bright_red]")
+        console.print("[red]Some metadata files are missing[/red]")
         sys.exit(1)
 
     dataset_yaml = meta_dir / "dataset.yaml"
@@ -104,47 +88,42 @@ def verify_nv_meta(input_dir: Path, syntax_theme: str = "one-dark") -> None:
         console.print(Panel(
             Syntax(content, "yaml", theme=syntax_theme, line_numbers=False, background_color="default"),
             title="[dim]dataset.yaml[/dim]",
-            border_style="bright_blue",
-            expand=False,
-            padding=(0, 1),
+            border_style="dim",
+            padding=(1, 2),
         ))
 
 
 def store_metadata(input_dir: str, syntax_theme: str = "one-dark") -> None:
     input_path = Path(input_dir)
     if not input_path.exists():
-        console.print(f"[bold bright_red]Directory not found:[/bold bright_red] {input_path}")
+        console.print(f"[red]Directory not found:[/red] {input_path}")
         sys.exit(1)
 
     for split in ["train", "val", "test"]:
         split_dir = input_path / split
         if not split_dir.exists():
-            console.print(f"[bold bright_red]Split directory not found:[/bold bright_red] {split_dir}")
+            console.print(f"[red]Split directory not found:[/red] {split_dir}")
             sys.exit(1)
         tar_count = len(list(split_dir.glob("*.tar")))
         if tar_count == 0:
-            console.print(f"[bold bright_red]No tar files in[/bold bright_red] {split_dir}")
+            console.print(f"[red]No tar files in[/red] {split_dir}")
             sys.exit(1)
-        console.print(
-            f"  [bright_white]{split:<6}[/bright_white]"
-            f"[bright_cyan]{tar_count}[/bright_cyan] shard(s)"
-        )
+        console.print(f"  {split:<6} {tar_count} shard(s)")
 
     meta_dir = input_path / ".nv-meta"
     required = ["dataset.yaml", "split.yaml", ".info.json"]
     if all((meta_dir / f).exists() for f in required):
         info = Table.grid(padding=(0, 2))
-        info.add_column(style="bright_white")
-        info.add_column(style="bright_cyan")
+        info.add_column(style="dim")
+        info.add_column()
         for f in required:
             info.add_row(f, f"{(meta_dir / f).stat().st_size:,} B")
 
         console.print(Panel(
             info,
-            title="[bold bright_green]Skipped -- .nv-meta/ complete[/bold bright_green]",
-            border_style="green",
-            expand=False,
-            padding=(0, 2),
+            title="[green]Skipped -- .nv-meta/ complete[/green]",
+            border_style="dim",
+            padding=(1, 2),
         ))
         return
 

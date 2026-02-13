@@ -8,7 +8,6 @@ from omegaconf import DictConfig, OmegaConf
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
-from rich.text import Text
 
 VALID_STAGES = ("data", "train", "wrap", "purge", "all")
 
@@ -44,8 +43,6 @@ def _banner(cfg: DictConfig, stage: str) -> None:
 
     lines = []
     lines.append(f"[bold {c.primary}]QWEN-BENCH[/bold {c.primary}]")
-    lines.append("")
-    lines.append(f"[dim]stage[/dim]  [bold {color}]{stage}[/bold {color}]")
 
     quote = _fetch_quote()
     if quote:
@@ -57,8 +54,8 @@ def _banner(cfg: DictConfig, stage: str) -> None:
     console.print()
     console.print(Panel(
         "\n".join(lines),
-        border_style=str(c.primary),
-        padding=(1, 4),
+        border_style="dim",
+        padding=(1, 2),
     ))
     console.print()
 
@@ -68,9 +65,9 @@ def _show_config(cfg: DictConfig) -> None:
     yaml_str = OmegaConf.to_yaml(cfg)
     console.print(Panel(
         Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False, background_color="default"),
-        title=f"[bold {cfg.theme.colors.accent}]Configuration[/bold {cfg.theme.colors.accent}]",
-        border_style=str(cfg.theme.colors.primary),
-        padding=(0, 2),
+        title=f"[{cfg.theme.colors.primary}]Configuration[/{cfg.theme.colors.primary}]",
+        border_style="dim",
+        padding=(1, 2),
     ))
     console.print()
 
@@ -148,8 +145,8 @@ def main(cfg: DictConfig) -> None:
     )
     console.print(Panel(
         result,
-        border_style=str(c.success),
-        padding=(0, 2),
+        border_style="dim",
+        padding=(1, 2),
     ))
     console.print()
 

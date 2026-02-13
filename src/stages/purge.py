@@ -12,9 +12,9 @@ def _remove(cfg: DictConfig, path: Path, label: str) -> tuple[str, str, str]:
     if path.exists():
         shutil.rmtree(path)
         return (
-            f"[bold {c.error}]removed[/bold {c.error}]",
-            f"[{c.accent}]{label}[/{c.accent}]",
-            f"[{c.primary}]{path}[/{c.primary}]",
+            f"[{c.error}]removed[/{c.error}]",
+            label,
+            f"[dim]{path}[/dim]",
         )
     return (
         "[dim]skipped[/dim]",
@@ -39,10 +39,9 @@ def run(cfg: DictConfig) -> None:
         rows.append(_remove(cfg, data_dir, "data"))
 
     table = Table(
-        border_style=str(c.purge),
-        header_style=f"bold {c.purge}",
+        border_style="dim",
+        header_style="bold",
         padding=(0, 1),
-        show_edge=True,
     )
     table.add_column("Status", justify="center")
     table.add_column("Target")
@@ -52,6 +51,4 @@ def run(cfg: DictConfig) -> None:
         table.add_row(status, label, path)
 
     console.print(table)
-    console.print(
-        f"  [bold {c.success}]Purge complete[/bold {c.success}]"
-    )
+    console.print(f"  [{c.success}]Purge complete[/{c.success}]")

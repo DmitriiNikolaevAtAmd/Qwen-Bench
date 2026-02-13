@@ -1,21 +1,13 @@
 from pathlib import Path
 
 from omegaconf import DictConfig
-from rich.text import Text
 
 from src import console
 
 
 def _step(cfg: DictConfig, n: int, title: str, detail: str = "") -> None:
     c = cfg.theme.colors
-    label = Text.assemble(
-        (f" {n}. ", f"bold {c.accent} on {c.data}"),
-        (" ", ""),
-        (title, f"bold {c.accent}"),
-    )
-    if detail:
-        label.append(f"  {detail}", style="dim")
-    console.print(label)
+    console.print(f"[{c.data}]{n}.[/{c.data}] [bold]{title}[/bold]  [dim]{detail}[/dim]")
     console.print()
 
 
