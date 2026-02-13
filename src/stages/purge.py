@@ -20,15 +20,12 @@ def run(cfg: DictConfig) -> None:
     hf_datasets_cache = Path(cfg.paths.hf_datasets_cache)
 
     _remove(output_dir, "output")
-    output_dir.mkdir(parents=True, exist_ok=True)
-
     _remove(hf_home, "hf cache")
     _remove(hf_datasets_cache, "datasets cache")
 
     if cfg.get("with_data", False):
         data_dir = Path(cfg.paths.data_dir)
         _remove(data_dir, "data")
-        data_dir.mkdir(parents=True, exist_ok=True)
 
     console.print()
     console.print("  [bold green]\u2714[/bold green]  Purge complete")
