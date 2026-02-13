@@ -1,0 +1,21 @@
+defaults:
+  - model: qwen2_5vl_7b
+  - data: pseudo_camera
+  - training: lora
+  - _self_
+
+stage: train  # data | train | wrap | purge | all
+
+paths:
+  data_dir: /data/qwen-bench
+  output_dir: ./output
+  hf_home: /data/qwen-bench/.cache
+  hf_datasets_cache: /data/qwen-bench/.cache/datasets
+
+seed: 42
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: ./outputs/${now:%Y-%m-%d_%H-%M-%S}

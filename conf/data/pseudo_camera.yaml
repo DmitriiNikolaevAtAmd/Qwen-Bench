@@ -1,0 +1,4 @@
+dataset: pseudo_camera
+samples: 50000
+train_split: 0.9
+cutoff_len: 2048

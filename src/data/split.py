@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack image-caption pairs into WebDataset tar shards for Megatron-Energon."""
+"""Split image-caption pairs into WebDataset tar shards for Megatron-Energon."""
 import argparse
 import json
 import math
@@ -75,8 +75,119 @@ def write_shards(records, output_dir: str, split_name: str, max_per_shard: int, 
     return written, actual_shards
 
 
+def split_shards(
+    input_file: str,
+    output_dir: str,
+    max_samples: int = 50000,
+    train_split: float = 0.9,
+    max_per_shard: int = 1000,
+    seed: int = 42,
+) -> None:
+    """Split image-caption JSONL into WebDataset tar shards.
+
+    This is the importable entry point used by the Hydra stage.
+
+    Args:
+        input_file: Path to input JSONL with image-caption pairs.
+        output_dir: Output directory for WebDataset shards.
+        max_samples: Maximum number of samples to process.
+        train_split: Fraction of data for the training split.
+        max_per_shard: Maximum samples per tar shard.
+        seed: Random seed for shuffle.
+    """
+    # --- Idempotency check: skip if split_info.json matches current params ---
+    info_path = Path(output_dir) / "split_info.json"
+    if info_path.exists():
+        with open(info_path) as f:
+            prev = json.load(f)
+        if (prev.get("seed") == seed
+                and prev.get("train_split") == train_split
+                and prev.get("max_samples") == max_samples
+                and prev.get("max_per_shard") == max_per_shard):
+            console.print(Panel(
+                f"[bold green]Skipped[/bold green] -- shards match current params\n\n"
+                f"  Dir:     {output_dir}\n"
+                f"  Total:   {prev['total']:,} samples\n"
+                f"  Splits:  train={prev['train']}, val={prev['val']}, test={prev['test']}\n"
+                f"  Seed:    {prev['seed']}",
+                title="split", expand=False,
+            ))
+            return
+
+    console.print(f"Loading records from [cyan]{input_file}[/cyan]...")
+    records = load_records(input_file, max_samples)
+    console.print(f"Loaded [bold]{len(records)}[/bold] records")
+
+    # Shuffle and split
+    random.seed(seed)
+    random.shuffle(records)
+
+    n_train = int(len(records) * train_split)
+    n_val = (len(records) - n_train) // 2
+    n_test = len(records) - n_train - n_val
+
+    train_records = records[:n_train]
+    val_records = records[n_train:n_train + n_val]
+    test_records = records[n_train + n_val:]
+
+    splits = [
+        ("train", train_records),
+        ("val", val_records),
+        ("test", test_records),
+    ]
+
+    out_path = Path(output_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    results = {}
+    total_samples = sum(len(r) for _, r in splits)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Writing shards", total=total_samples)
+        for split_name, split_records in splits:
+            written, num_shards = write_shards(
+                split_records, output_dir, split_name, max_per_shard,
+                progress, task,
+            )
+            results[split_name] = (written, num_shards)
+
+    # Summary table
+    table = Table(title="Encoding Summary")
+    table.add_column("Split", style="cyan")
+    table.add_column("Samples", justify="right")
+    table.add_column("Shards", justify="right")
+
+    for split_name, (written, num_shards) in results.items():
+        table.add_row(split_name, str(written), str(num_shards))
+
+    table.add_row("[bold]total[/bold]", f"[bold]{sum(w for w, _ in results.values())}[/bold]", "")
+    console.print(table)
+
+    # Write split info for downstream tools (includes full params for idempotency check)
+    split_info = {
+        "train": len(train_records),
+        "val": len(val_records),
+        "test": len(test_records),
+        "total": len(records),
+        "seed": seed,
+        "train_split": train_split,
+        "max_samples": max_samples,
+        "max_per_shard": max_per_shard,
+    }
+    info_path = out_path / "split_info.json"
+    with open(info_path, "w") as f:
+        json.dump(split_info, f, indent=2)
+    console.print(f"Split info written to [cyan]{info_path}[/cyan]")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Encode image-caption pairs into WebDataset shards")
+    parser = argparse.ArgumentParser(description="Split image-caption pairs into WebDataset shards")
     parser.add_argument(
         "--input", type=str,
         default=f"{DATA_DIR}/pseudo-camera-raw.jsonl",
@@ -104,96 +215,14 @@ def main():
         help=f"Random seed for shuffle (default: {SEED})",
     )
     args = parser.parse_args()
-
-    # --- Idempotency check: skip if split_info.json matches current params ---
-    info_path = Path(args.output_dir) / "split_info.json"
-    if info_path.exists():
-        with open(info_path) as f:
-            prev = json.load(f)
-        if (prev.get("seed") == args.seed
-                and prev.get("train_split") == args.train_split
-                and prev.get("max_samples") == args.max_samples
-                and prev.get("max_per_shard") == args.max_per_shard):
-            console.print(Panel(
-                f"[bold green]Skipped[/bold green] -- shards match current params\n\n"
-                f"  Dir:     {args.output_dir}\n"
-                f"  Total:   {prev['total']:,} samples\n"
-                f"  Splits:  train={prev['train']}, val={prev['val']}, test={prev['test']}\n"
-                f"  Seed:    {prev['seed']}",
-                title="encode", expand=False,
-            ))
-            return
-
-    console.print(f"Loading records from [cyan]{args.input}[/cyan]...")
-    records = load_records(args.input, args.max_samples)
-    console.print(f"Loaded [bold]{len(records)}[/bold] records")
-
-    # Shuffle and split
-    random.seed(args.seed)
-    random.shuffle(records)
-
-    n_train = int(len(records) * args.train_split)
-    n_val = (len(records) - n_train) // 2
-    n_test = len(records) - n_train - n_val
-
-    train_records = records[:n_train]
-    val_records = records[n_train:n_train + n_val]
-    test_records = records[n_train + n_val:]
-
-    splits = [
-        ("train", train_records),
-        ("val", val_records),
-        ("test", test_records),
-    ]
-
-    output_dir = Path(args.output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    results = {}
-    total_samples = sum(len(r) for _, r in splits)
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Writing shards", total=total_samples)
-        for split_name, split_records in splits:
-            written, num_shards = write_shards(
-                split_records, str(output_dir), split_name, args.max_per_shard,
-                progress, task,
-            )
-            results[split_name] = (written, num_shards)
-
-    # Summary table
-    table = Table(title="Encoding Summary")
-    table.add_column("Split", style="cyan")
-    table.add_column("Samples", justify="right")
-    table.add_column("Shards", justify="right")
-
-    for split_name, (written, num_shards) in results.items():
-        table.add_row(split_name, str(written), str(num_shards))
-
-    table.add_row("[bold]total[/bold]", f"[bold]{sum(w for w, _ in results.values())}[/bold]", "")
-    console.print(table)
-
-    # Write split info for downstream tools (includes full params for idempotency check)
-    split_info = {
-        "train": len(train_records),
-        "val": len(val_records),
-        "test": len(test_records),
-        "total": len(records),
-        "seed": args.seed,
-        "train_split": args.train_split,
-        "max_samples": args.max_samples,
-        "max_per_shard": args.max_per_shard,
-    }
-    info_path = output_dir / "split_info.json"
-    with open(info_path, "w") as f:
-        json.dump(split_info, f, indent=2)
-    console.print(f"Split info written to [cyan]{info_path}[/cyan]")
+    split_shards(
+        input_file=args.input,
+        output_dir=args.output_dir,
+        max_samples=args.max_samples,
+        train_split=args.train_split,
+        max_per_shard=args.max_per_shard,
+        seed=args.seed,
+    )
 
 
 if __name__ == "__main__":

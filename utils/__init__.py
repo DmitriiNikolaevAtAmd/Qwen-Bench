@@ -1,5 +1,4 @@
 # utils package for Qwen-Bench
-from utils.configure import configure
 from utils.dataset import (
     check_dataset_exists,
     generate_dataset_info,
@@ -20,8 +19,6 @@ from utils.logging import (
 from utils.monitor import BenchmarkCallback
 
 __all__ = [
-    # configure
-    "configure",
     # dataset
     "jsonl_to_sharegpt",
     "jsonl_to_alpaca",

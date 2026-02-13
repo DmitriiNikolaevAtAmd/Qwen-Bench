@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare WebDataset shards for Megatron-Energon by generating .nv-meta/ metadata."""
+"""Store Megatron-Energon metadata (.nv-meta/) for WebDataset shards."""
 import argparse
 import json
 import os
@@ -90,25 +90,22 @@ def verify_nv_meta(input_dir: Path) -> None:
         console.print(dataset_yaml.read_text().rstrip())
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Prepare WebDataset shards for Megatron-Energon"
-    )
-    parser.add_argument(
-        "--input-dir", type=str,
-        default=f"{DATA_DIR}/webdataset",
-        help="Directory containing WebDataset splits (train/val/test)",
-    )
-    args = parser.parse_args()
+def store_metadata(input_dir: str) -> None:
+    """Create Megatron-Energon metadata for WebDataset shards.
 
-    input_dir = Path(args.input_dir)
-    if not input_dir.exists():
-        console.print(f"[bold red]FAIL:[/bold red] directory not found: {input_dir}")
+    This is the importable entry point used by the Hydra stage.
+
+    Args:
+        input_dir: Directory containing WebDataset splits (train/val/test).
+    """
+    input_path = Path(input_dir)
+    if not input_path.exists():
+        console.print(f"[bold red]FAIL:[/bold red] directory not found: {input_path}")
         sys.exit(1)
 
     # Verify split folders exist
     for split in ["train", "val", "test"]:
-        split_dir = input_dir / split
+        split_dir = input_path / split
         if not split_dir.exists():
             console.print(f"[bold red]FAIL:[/bold red] split directory not found: {split_dir}")
             sys.exit(1)
@@ -119,20 +116,33 @@ def main():
         console.print(f"  {split}: {tar_count} shard(s)")
 
     # --- Idempotency check: skip if .nv-meta/ already has all required files ---
-    meta_dir = input_dir / ".nv-meta"
+    meta_dir = input_path / ".nv-meta"
     required = ["dataset.yaml", "split.yaml", ".info.json"]
     if all((meta_dir / f).exists() for f in required):
         console.print(Panel(
             f"[bold green]Skipped[/bold green] -- .nv-meta/ already complete\n\n"
             + "\n".join(f"  {f}: {(meta_dir / f).stat().st_size:,} B" for f in required),
-            title="prepare", expand=False,
+            title="store", expand=False,
         ))
         return
 
     console.print()
-    run_energon_prepare(input_dir)
+    run_energon_prepare(input_path)
     console.print()
-    verify_nv_meta(input_dir)
+    verify_nv_meta(input_path)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Store Megatron-Energon metadata for WebDataset shards"
+    )
+    parser.add_argument(
+        "--input-dir", type=str,
+        default=f"{DATA_DIR}/webdataset",
+        help="Directory containing WebDataset splits (train/val/test)",
+    )
+    args = parser.parse_args()
+    store_metadata(args.input_dir)
 
 
 if __name__ == "__main__":
