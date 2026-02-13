@@ -1,9 +1,8 @@
-import logging
 from pathlib import Path
 
 from omegaconf import DictConfig
 
-log = logging.getLogger(__name__)
+from src import console
 
 
 def run(cfg: DictConfig) -> None:
@@ -22,10 +21,10 @@ def run(cfg: DictConfig) -> None:
     raw_jsonl = f"{data_dir}/pseudo-camera-raw.jsonl"
     wds_dir = f"{data_dir}/webdataset"
 
-    log.info("Step 1/3: Loading pseudo-camera-10k images + captions")
+    console.print("[bold]Step 1/3:[/bold] Loading pseudo-camera-10k images + captions")
     load_pseudo_camera(num_samples=samples, output_file=raw_jsonl)
 
-    log.info("Step 2/3: Splitting into WebDataset shards")
+    console.print("[bold]Step 2/3:[/bold] Splitting into WebDataset shards")
     split_shards(
         input_file=raw_jsonl,
         output_dir=wds_dir,
@@ -35,7 +34,7 @@ def run(cfg: DictConfig) -> None:
         seed=seed,
     )
 
-    log.info("Step 3/3: Storing Megatron-Energon metadata")
+    console.print("[bold]Step 3/3:[/bold] Storing Megatron-Energon metadata")
     store_metadata(input_dir=wds_dir)
 
-    log.info("Data pipeline complete")
+    console.print("[bold green]Data pipeline complete[/bold green]")

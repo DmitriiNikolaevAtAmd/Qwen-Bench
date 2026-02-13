@@ -1,12 +1,12 @@
-import logging
 import os
 import subprocess
 from pathlib import Path
 
 import yaml
 from omegaconf import DictConfig, OmegaConf
+from rich.syntax import Syntax
 
-log = logging.getLogger(__name__)
+from src import console
 
 TRAINING_KEYS = {
     "finetuning_type",
@@ -76,7 +76,7 @@ def _build_llama_factory_config(cfg: DictConfig) -> dict:
 
 def run(cfg: DictConfig) -> None:
     lf_config = _build_llama_factory_config(cfg)
-    log.info("LLaMA Factory config:\n%s", yaml.dump(lf_config, default_flow_style=False))
+    console.print(Syntax(yaml.dump(lf_config, default_flow_style=False), "yaml", theme="monokai"))
 
     output_dir = Path(cfg.paths.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -84,8 +84,8 @@ def run(cfg: DictConfig) -> None:
     config_path = output_dir / "train_config.yaml"
     with open(config_path, "w") as f:
         yaml.dump(lf_config, f, default_flow_style=False, sort_keys=False)
-    log.info("Training config written to %s", config_path)
+    console.print(f"Config written to [cyan]{config_path}[/cyan]")
 
     cmd = ["llamafactory-cli", "train", str(config_path)]
-    log.info("Running: %s", " ".join(cmd))
+    console.print(f"Running [bold]{' '.join(cmd)}[/bold]")
     subprocess.run(cmd, check=True)

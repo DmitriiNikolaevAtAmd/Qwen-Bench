@@ -1,10 +1,9 @@
-import logging
 import shutil
 from pathlib import Path
 
 from omegaconf import DictConfig
 
-log = logging.getLogger(__name__)
+from src import console
 
 
 def run(cfg: DictConfig) -> None:
@@ -13,20 +12,20 @@ def run(cfg: DictConfig) -> None:
     hf_datasets_cache = Path(cfg.paths.hf_datasets_cache)
 
     if output_dir.exists():
-        log.info("Removing output files: %s", output_dir)
+        console.print(f"[red]Removing[/red] {output_dir}")
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for cache_dir in (hf_home, hf_datasets_cache):
         if cache_dir.exists():
-            log.info("Removing cache: %s", cache_dir)
+            console.print(f"[red]Removing[/red] {cache_dir}")
             shutil.rmtree(cache_dir)
 
     if cfg.get("with_data", False):
         data_dir = Path(cfg.paths.data_dir)
         if data_dir.exists():
-            log.info("Removing data: %s", data_dir)
+            console.print(f"[red]Removing[/red] {data_dir}")
             shutil.rmtree(data_dir)
         data_dir.mkdir(parents=True, exist_ok=True)
 
-    log.info("Purge complete")
+    console.print("[bold green]Purge complete[/bold green]")
