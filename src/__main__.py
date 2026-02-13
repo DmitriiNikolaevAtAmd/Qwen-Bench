@@ -12,11 +12,11 @@ console = Console()
 
 VALID_STAGES = ("data", "train", "wrap", "purge", "all")
 
-STAGE_ICONS = {
-    "data": "[bold blue]1[/bold blue]",
-    "train": "[bold magenta]2[/bold magenta]",
-    "wrap": "[bold yellow]3[/bold yellow]",
-    "purge": "[bold red]x[/bold red]",
+STAGE_COLORS = {
+    "data": "blue",
+    "train": "magenta",
+    "wrap": "yellow",
+    "purge": "red",
 }
 
 
@@ -43,13 +43,16 @@ def _show_config(cfg: DictConfig) -> None:
     console.print()
 
 
-def _stage_header(name: str) -> None:
-    icon = STAGE_ICONS.get(name, "[bold]>[/bold]")
-    console.rule(f" {icon}  [bold]{name}[/bold] ")
+def _stage_open(name: str) -> None:
+    color = STAGE_COLORS.get(name, "white")
+    console.print(f"[bold {color}]<{name}>[/bold {color}]")
+    console.print()
 
 
-def _stage_footer(name: str, elapsed: float) -> None:
-    console.print(f"  [dim]{name} done in {elapsed:.1f}s[/dim]")
+def _stage_close(name: str, elapsed: float) -> None:
+    color = STAGE_COLORS.get(name, "white")
+    console.print()
+    console.print(f"[bold {color}]</{name}>[/bold {color}]  [dim]{elapsed:.1f}s[/dim]")
     console.print()
 
 
@@ -83,16 +86,17 @@ def main(cfg: DictConfig) -> None:
 
     if stage == "all":
         for name in ("data", "train", "wrap"):
-            _stage_header(name)
+            _stage_open(name)
             t0 = time.time()
             stages[name](cfg)
-            _stage_footer(name, time.time() - t0)
+            _stage_close(name, time.time() - t0)
     else:
-        _stage_header(stage)
+        _stage_open(stage)
+        t0 = time.time()
         stages[stage](cfg)
+        _stage_close(stage, time.time() - t0)
 
     elapsed = time.time() - t_total
-    console.print()
     console.rule(f"[bold green]done[/bold green] [dim]{elapsed:.1f}s[/dim]")
 
 

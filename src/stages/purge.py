@@ -9,9 +9,9 @@ from src import console
 def _remove(path: Path, label: str) -> None:
     if path.exists():
         shutil.rmtree(path)
-        console.print(f"  [red]\u2716[/red]  {label}  [dim]{path}[/dim]")
+        console.print(f"  [red]x[/red]  {label}  [dim]{path}[/dim]")
     else:
-        console.print(f"  [dim]\u2500[/dim]  {label}  [dim](not found)[/dim]")
+        console.print(f"  [dim]-[/dim]  {label}  [dim](not found)[/dim]")
 
 
 def run(cfg: DictConfig) -> None:
@@ -28,4 +28,4 @@ def run(cfg: DictConfig) -> None:
         _remove(data_dir, "data")
 
     console.print()
-    console.print("  [bold green]\u2714[/bold green]  Purge complete")
+    console.print("  [bold green]ok[/bold green]  Purge complete")
