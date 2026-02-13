@@ -17,9 +17,9 @@ def _remove(cfg: DictConfig, path: Path, label: str) -> tuple[str, str, str]:
             f"[dim]{path}[/dim]",
         )
     return (
-        "[dim]skipped[/dim]",
+        "[dim]-[/dim]",
         f"[dim]{label}[/dim]",
-        "[dim](not found)[/dim]",
+        "[dim]--[/dim]",
     )
 
 
@@ -51,4 +51,3 @@ def run(cfg: DictConfig) -> None:
         table.add_row(status, label, path)
 
     console.print(table)
-    console.print(f"  [{c.success}]Purge complete[/{c.success}]")

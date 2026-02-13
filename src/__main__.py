@@ -26,7 +26,11 @@ def _stage_color(cfg: DictConfig, name: str) -> str:
 
 def _fetch_quote() -> tuple[str, str] | None:
     try:
-        req = urllib.request.Request(QUOTE_URL, headers={"User-Agent": "qwen-bench"})
+        url = f"{QUOTE_URL}?nocache={time.time()}"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "qwen-bench",
+            "Cache-Control": "no-cache",
+        })
         with urllib.request.urlopen(req, timeout=QUOTE_TIMEOUT) as resp:
             data = json.loads(resp.read())
         if data and isinstance(data, list):
@@ -75,7 +79,7 @@ def _show_config(cfg: DictConfig) -> None:
 def _stage_open(cfg: DictConfig, name: str) -> None:
     console = _get_console()
     color = _stage_color(cfg, name)
-    console.rule(f"[bold {color}]{name}[/bold {color}]", style=color)
+    console.rule(f"[bold {color}]{name.capitalize()}[/bold {color}]", style=color)
     console.print()
 
 
@@ -84,7 +88,7 @@ def _stage_close(cfg: DictConfig, name: str, elapsed: float) -> None:
     color = _stage_color(cfg, name)
     console.print()
     console.rule(
-        f"[bold {color}]{name}[/bold {color}]  [dim]{elapsed:.1f}s[/dim]",
+        f"[bold {color}]{name.capitalize()}[/bold {color}]  [dim]{elapsed:.1f}s[/dim]",
         style=color,
     )
     console.print()
