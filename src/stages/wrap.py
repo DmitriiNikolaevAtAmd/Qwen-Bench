@@ -1,4 +1,3 @@
-"""Wrap stage: package training outputs into a zip archive."""
 import logging
 import zipfile
 from pathlib import Path
@@ -9,7 +8,6 @@ log = logging.getLogger(__name__)
 
 
 def run(cfg: DictConfig) -> None:
-    """Zip the output directory into output.zip."""
     output_dir = Path(cfg.paths.output_dir)
 
     if not output_dir.is_dir():

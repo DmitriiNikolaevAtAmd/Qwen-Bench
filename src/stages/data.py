@@ -1,7 +1,3 @@
-"""Data pipeline stage: load -> split -> store.
-
-Orchestrates the three data sub-steps using values from the Hydra config.
-"""
 import logging
 from pathlib import Path
 
@@ -11,7 +7,6 @@ log = logging.getLogger(__name__)
 
 
 def run(cfg: DictConfig) -> None:
-    """Run the full data pipeline: load, split, store."""
     from src.data.load import load_pseudo_camera
     from src.data.split import split_shards
     from src.data.store import store_metadata
@@ -27,11 +22,9 @@ def run(cfg: DictConfig) -> None:
     raw_jsonl = f"{data_dir}/pseudo-camera-raw.jsonl"
     wds_dir = f"{data_dir}/webdataset"
 
-    # Step 1: Load image-caption pairs
     log.info("Step 1/3: Loading pseudo-camera-10k images + captions")
     load_pseudo_camera(num_samples=samples, output_file=raw_jsonl)
 
-    # Step 2: Split into WebDataset shards
     log.info("Step 2/3: Splitting into WebDataset shards")
     split_shards(
         input_file=raw_jsonl,
@@ -42,7 +35,6 @@ def run(cfg: DictConfig) -> None:
         seed=seed,
     )
 
-    # Step 3: Store Megatron-Energon metadata
     log.info("Step 3/3: Storing Megatron-Energon metadata")
     store_metadata(input_dir=wds_dir)
 

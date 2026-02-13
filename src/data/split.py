@@ -114,6 +114,10 @@ def split_shards(
             ))
             return
 
+    nv_meta = Path(output_dir) / ".nv-meta"
+    if nv_meta.exists():
+        shutil.rmtree(nv_meta)
+
     console.print(f"Loading records from [cyan]{input_file}[/cyan]...")
     records = load_records(input_file, max_samples)
     console.print(f"Loaded [bold]{len(records)}[/bold] records")
