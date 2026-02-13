@@ -1,0 +1,13 @@
+syntax: monokai
+
+colors:
+  primary: "#ff00ff"
+  banner: "#ff00ff"
+  data: "#00ffff"
+  train: "#ff00ff"
+  wrap: "#ffff00"
+  purge: "#ff0055"
+  success: "#00ff00"
+  warn: "#ffff00"
+  error: "#ff0055"
+  accent: "#ffffff"

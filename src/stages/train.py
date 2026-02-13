@@ -77,13 +77,14 @@ def _build_llama_factory_config(cfg: DictConfig) -> dict:
 
 
 def run(cfg: DictConfig) -> None:
+    c = cfg.theme.colors
     lf_config = _build_llama_factory_config(cfg)
 
     yaml_str = yaml.dump(lf_config, default_flow_style=False, sort_keys=False)
     console.print(Panel(
-        Syntax(yaml_str, "yaml", theme="monokai", line_numbers=False),
-        title="[bold bright_white]LLaMA Factory[/bold bright_white]",
-        border_style="bright_magenta",
+        Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False),
+        title=f"[bold {c.accent}]LLaMA Factory[/bold {c.accent}]",
+        border_style=str(c.train),
         expand=False,
         padding=(0, 1),
     ))
@@ -94,12 +95,12 @@ def run(cfg: DictConfig) -> None:
     config_path = output_dir / "train_config.yaml"
     with open(config_path, "w") as f:
         yaml.dump(lf_config, f, default_flow_style=False, sort_keys=False)
-    console.print(f"  [bright_green]saved[/bright_green]  [cyan]{config_path}[/cyan]")
+    console.print(f"  [{c.success}]saved[/{c.success}]  [{c.primary}]{config_path}[/{c.primary}]")
 
     cmd = ["llamafactory-cli", "train", str(config_path)]
     console.print(
-        f"  [bright_magenta]exec[/bright_magenta]   "
-        f"[bold bright_white]{' '.join(cmd)}[/bold bright_white]"
+        f"  [{c.train}]exec[/{c.train}]   "
+        f"[bold {c.accent}]{' '.join(cmd)}[/bold {c.accent}]"
     )
     console.print()
     subprocess.run(cmd, check=True)

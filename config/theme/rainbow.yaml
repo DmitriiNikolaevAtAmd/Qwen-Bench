@@ -1,0 +1,13 @@
+syntax: one-dark
+
+colors:
+  primary: bright_cyan
+  banner: bright_cyan
+  data: bright_blue
+  train: bright_magenta
+  wrap: bright_yellow
+  purge: bright_red
+  success: bright_green
+  warn: yellow
+  error: bright_red
+  accent: bright_white

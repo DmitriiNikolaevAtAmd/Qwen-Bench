@@ -1,0 +1,13 @@
+syntax: dracula
+
+colors:
+  primary: "#bd93f9"
+  banner: "#bd93f9"
+  data: "#8be9fd"
+  train: "#ff79c6"
+  wrap: "#f1fa8c"
+  purge: "#ff5555"
+  success: "#50fa7b"
+  warn: "#f1fa8c"
+  error: "#ff5555"
+  accent: "#f8f8f2"

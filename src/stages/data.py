@@ -6,11 +6,12 @@ from rich.text import Text
 from src import console
 
 
-def _step(n: int, title: str, detail: str = "") -> None:
+def _step(cfg: DictConfig, n: int, title: str, detail: str = "") -> None:
+    c = cfg.theme.colors
     label = Text.assemble(
-        (f" {n}. ", "bold bright_cyan on blue"),
+        (f" {n}. ", f"bold {c.accent} on {c.data}"),
         (" ", ""),
-        (title, "bold bright_white"),
+        (title, f"bold {c.accent}"),
     )
     if detail:
         label.append(f"  {detail}", style="dim")
@@ -27,6 +28,7 @@ def run(cfg: DictConfig) -> None:
     samples = int(cfg.data.samples)
     train_split = float(cfg.data.train_split)
     seed = int(cfg.seed)
+    syntax_theme = str(cfg.theme.syntax)
 
     Path(data_dir).mkdir(parents=True, exist_ok=True)
     Path(str(cfg.paths.hf_home)).mkdir(parents=True, exist_ok=True)
@@ -34,11 +36,11 @@ def run(cfg: DictConfig) -> None:
     raw_jsonl = f"{data_dir}/pseudo-camera-raw.jsonl"
     wds_dir = f"{data_dir}/webdataset"
 
-    _step(1, "Load", "pseudo-camera-10k (images + captions)")
+    _step(cfg, 1, "Load", "pseudo-camera-10k (images + captions)")
     load_pseudo_camera(num_samples=samples, output_file=raw_jsonl)
     console.print()
 
-    _step(2, "Split", "into WebDataset shards")
+    _step(cfg, 2, "Split", "into WebDataset shards")
     split_shards(
         input_file=raw_jsonl,
         output_dir=wds_dir,
@@ -49,5 +51,5 @@ def run(cfg: DictConfig) -> None:
     )
     console.print()
 
-    _step(3, "Store", "Megatron-Energon metadata")
-    store_metadata(input_dir=wds_dir)
+    _step(cfg, 3, "Store", "Megatron-Energon metadata")
+    store_metadata(input_dir=wds_dir, syntax_theme=syntax_theme)

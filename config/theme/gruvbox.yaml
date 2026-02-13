@@ -1,0 +1,13 @@
+syntax: gruvbox-dark
+
+colors:
+  primary: "#d79921"
+  banner: "#d79921"
+  data: "#83a598"
+  train: "#d3869b"
+  wrap: "#fabd2f"
+  purge: "#fb4934"
+  success: "#b8bb26"
+  warn: "#fabd2f"
+  error: "#fb4934"
+  accent: "#ebdbb2"

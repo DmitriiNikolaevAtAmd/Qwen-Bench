@@ -23,6 +23,7 @@ def _fmt_size(nbytes: int) -> str:
 
 
 def run(cfg: DictConfig) -> None:
+    c = cfg.theme.colors
     output_dir = Path(cfg.paths.output_dir)
 
     if not output_dir.is_dir():
@@ -35,9 +36,9 @@ def run(cfg: DictConfig) -> None:
     archive_path = Path("output.zip")
 
     with Progress(
-        SpinnerColumn(style="bright_yellow"),
-        TextColumn("[bold bright_white]{task.description}[/bold bright_white]"),
-        BarColumn(bar_width=40, style="bright_blue", complete_style="bright_yellow", finished_style="bright_green"),
+        SpinnerColumn(style=str(c.wrap)),
+        TextColumn(f"[bold {c.accent}]{{task.description}}[/bold {c.accent}]"),
+        BarColumn(bar_width=40, style=str(c.primary), complete_style=str(c.wrap), finished_style=str(c.success)),
         MofNCompleteColumn(),
         TimeElapsedColumn(),
         console=console,
@@ -49,16 +50,16 @@ def run(cfg: DictConfig) -> None:
                 progress.advance(task)
 
     info = Table.grid(padding=(0, 2))
-    info.add_column(style="bright_white")
-    info.add_column(style="bright_cyan")
+    info.add_column(style=str(c.accent))
+    info.add_column(style=str(c.primary))
     info.add_row("archive", str(archive_path))
     info.add_row("files", f"{len(files):,}")
     info.add_row("size", _fmt_size(archive_path.stat().st_size))
 
     console.print(Panel(
         info,
-        title="[bold bright_green]Packaged[/bold bright_green]",
-        border_style="bright_yellow",
+        title=f"[bold {c.success}]Packaged[/bold {c.success}]",
+        border_style=str(c.wrap),
         expand=False,
         padding=(0, 2),
     ))

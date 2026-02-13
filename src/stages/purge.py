@@ -7,38 +7,40 @@ from rich.table import Table
 from src import console
 
 
-def _remove(path: Path, label: str) -> tuple[str, str, str]:
+def _remove(cfg: DictConfig, path: Path, label: str) -> tuple[str, str, str]:
+    c = cfg.theme.colors
     if path.exists():
         shutil.rmtree(path)
         return (
-            f"[bold bright_red]removed[/bold bright_red]",
-            f"[bright_white]{label}[/bright_white]",
-            f"[cyan]{path}[/cyan]",
+            f"[bold {c.error}]removed[/bold {c.error}]",
+            f"[{c.accent}]{label}[/{c.accent}]",
+            f"[{c.primary}]{path}[/{c.primary}]",
         )
     return (
-        f"[dim]skipped[/dim]",
+        "[dim]skipped[/dim]",
         f"[dim]{label}[/dim]",
-        f"[dim](not found)[/dim]",
+        "[dim](not found)[/dim]",
     )
 
 
 def run(cfg: DictConfig) -> None:
+    c = cfg.theme.colors
     output_dir = Path(cfg.paths.output_dir)
     hf_home = Path(cfg.paths.hf_home)
     hf_datasets_cache = Path(cfg.paths.hf_datasets_cache)
 
     rows = []
-    rows.append(_remove(output_dir, "output"))
-    rows.append(_remove(hf_home, "hf cache"))
-    rows.append(_remove(hf_datasets_cache, "datasets cache"))
+    rows.append(_remove(cfg, output_dir, "output"))
+    rows.append(_remove(cfg, hf_home, "hf cache"))
+    rows.append(_remove(cfg, hf_datasets_cache, "datasets cache"))
 
     if cfg.get("with_data", False):
         data_dir = Path(cfg.paths.data_dir)
-        rows.append(_remove(data_dir, "data"))
+        rows.append(_remove(cfg, data_dir, "data"))
 
     table = Table(
-        border_style="bright_red",
-        header_style="bold bright_red",
+        border_style=str(c.purge),
+        header_style=f"bold {c.purge}",
         padding=(0, 1),
         show_edge=True,
     )
@@ -51,5 +53,5 @@ def run(cfg: DictConfig) -> None:
 
     console.print(table)
     console.print(
-        "  [bold bright_green]Purge complete[/bold bright_green]"
+        f"  [bold {c.success}]Purge complete[/bold {c.success}]"
     )

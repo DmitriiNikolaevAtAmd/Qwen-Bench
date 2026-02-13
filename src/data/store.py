@@ -50,7 +50,7 @@ def run_energon_prepare(input_dir: Path) -> None:
     console.print("  [bright_green]ok[/bright_green]  energon prepare")
 
 
-def verify_nv_meta(input_dir: Path) -> None:
+def verify_nv_meta(input_dir: Path, syntax_theme: str = "one-dark") -> None:
     meta_dir = input_dir / ".nv-meta"
     expected_files = ["dataset.yaml", "split.yaml", ".info.json"]
 
@@ -102,7 +102,7 @@ def verify_nv_meta(input_dir: Path) -> None:
     if dataset_yaml.exists():
         content = dataset_yaml.read_text().rstrip()
         console.print(Panel(
-            Syntax(content, "yaml", theme="monokai", line_numbers=False),
+            Syntax(content, "yaml", theme=syntax_theme, line_numbers=False),
             title="[dim]dataset.yaml[/dim]",
             border_style="bright_blue",
             expand=False,
@@ -110,7 +110,7 @@ def verify_nv_meta(input_dir: Path) -> None:
         ))
 
 
-def store_metadata(input_dir: str) -> None:
+def store_metadata(input_dir: str, syntax_theme: str = "one-dark") -> None:
     input_path = Path(input_dir)
     if not input_path.exists():
         console.print(f"[bold bright_red]Directory not found:[/bold bright_red] {input_path}")
@@ -151,7 +151,7 @@ def store_metadata(input_dir: str) -> None:
     console.print()
     run_energon_prepare(input_path)
     console.print()
-    verify_nv_meta(input_path)
+    verify_nv_meta(input_path, syntax_theme=syntax_theme)
 
 
 def main():

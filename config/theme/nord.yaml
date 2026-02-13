@@ -1,0 +1,13 @@
+syntax: nord
+
+colors:
+  primary: "#88c0d0"
+  banner: "#88c0d0"
+  data: "#81a1c1"
+  train: "#b48ead"
+  wrap: "#ebcb8b"
+  purge: "#bf616a"
+  success: "#a3be8c"
+  warn: "#ebcb8b"
+  error: "#bf616a"
+  accent: "#eceff4"
