@@ -13,11 +13,11 @@ beta1: 0.9
 beta2: 0.95
 init_method_std: 0.02
 checkpointing: false
-data_format: megatron
-dataset: bc
+data_format: energon
+dataset: pseudo_camera
 data_path: null
 data_split: "100,0,0"
-num_samples: 50000
+num_samples: 9997
 num_workers: 4
 
 # 2. Parallelism (apple-to-apple)
