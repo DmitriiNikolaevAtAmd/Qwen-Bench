@@ -334,7 +334,9 @@ def run(cfg: DictConfig) -> None:
     if f.turbo_attention:
         os.environ["USE_TURBO_ATTENTION"] = "1"
 
+    # Set both names -- ROCm/HIP may still look for the old CUDA name
     os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     console.print()
 
     # -- 2. Tokenizer ---------------------------------------------------------
