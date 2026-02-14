@@ -117,7 +117,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
     config = GPTDatasetConfig(
         random_seed=args.seed,
         sequence_length=args.seq_length,
-        blend=args.data_path,
+        blend=(args.data_path, None),
         split=args.split,
         path_to_cache=args.data_cache_path,
         tokenizer=tokenizer,
