@@ -3,6 +3,7 @@
 Converts Hydra configuration to Megatron command-line arguments
 and launches the pretrain worker via torchrun.
 """
+import json
 import logging
 import os
 import struct
@@ -83,55 +84,9 @@ def _expected_idx_size(num_sequences: int) -> int:
     return header + num_sequences * 4 + num_sequences * 8 + (num_sequences + 1) * 8
 
 
-def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
-    """Ensure Megatron binary (.bin/.idx) data exists.
-
-    For benchmarking, generates synthetic random-token data when the
-    files are missing.  Each sample is one document of ``seq_length``
-    random token ids drawn uniformly from ``[0, vocab_size)``.
-    """
-    data_dir = Path(cfg.paths.data_dir)
-    t = cfg.training
-    prefix = data_dir / f"{t.dataset}-train"
-    bin_path = Path(f"{prefix}.bin")
-    idx_path = Path(f"{prefix}.idx")
-
-    num_samples = int(t.num_samples)
-    seq_length = int(t.seq_length)
-    dtype = np.int32
-    dtype_size = np.dtype(dtype).itemsize
-
-    # Validate existing files by exact expected sizes
-    expected_bin = num_samples * seq_length * dtype_size
-    expected_idx = _expected_idx_size(num_samples)
-
-    if bin_path.exists() and idx_path.exists():
-        if (bin_path.stat().st_size == expected_bin
-                and idx_path.stat().st_size == expected_idx):
-            _kv(cfg, "data", f"found {bin_path.name} + {idx_path.name}")
-            return
-        _kv(cfg, "data", "removing mismatched data files, will regenerate")
-        bin_path.unlink(missing_ok=True)
-        idx_path.unlink(missing_ok=True)
-
-    _kv(cfg, "generating",
-         f"{num_samples:,} synthetic samples  seq_length={seq_length}  vocab={vocab_size:,}")
-
-    data_dir.mkdir(parents=True, exist_ok=True)
-    rng = np.random.RandomState(cfg.seed)
-
-    sizes: list[int] = []
-    doc_idx: list[int] = [0]
-
-    with open(bin_path, "wb") as data_file:
-        for _ in range(num_samples):
-            tokens = rng.randint(0, vocab_size, size=seq_length, dtype=dtype)
-            data_file.write(tokens.tobytes(order="C"))
-            sizes.append(seq_length)
-            doc_idx.append(len(sizes))
-
-    # Write the .idx index file (Megatron MMapIndexedDataset format)
-    # Header: magic(9B) + version(Q=8B) + dtype_code(B=1B) + num_seq(Q) + num_doc(Q)
+def _write_megatron_idx(idx_path: Path, sizes: list[int], doc_idx: list[int]) -> None:
+    """Write a Megatron MMapIndexedDataset .idx file."""
+    dtype_size = np.dtype(np.int32).itemsize
     with open(idx_path, "wb") as index:
         index.write(b"MMIDIDX\x00\x00")                       # 9 bytes  magic
         index.write(struct.pack("<Q", 1))                      # 8 bytes  version
@@ -148,9 +103,136 @@ def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
 
         np.array(doc_idx, dtype=np.int64).tofile(index)        # doc indices
 
+
+def _tokenize_captions_to_megatron(
+    cfg: DictConfig,
+    jsonl_path: Path,
+    bin_path: Path,
+    idx_path: Path,
+    seq_length: int,
+    tokenizer,
+) -> None:
+    """Tokenize pseudo_camera captions from JSONL into Megatron binary format.
+
+    Reads each ``{"image": ..., "caption": ...}`` line, tokenizes the caption
+    text, pads or truncates to ``seq_length``, and writes the result as a
+    Megatron MMapIndexedDataset (.bin + .idx).
+    """
+    pad_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else 0
+    dtype = np.int32
+
+    captions: list[str] = []
+    with open(jsonl_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                captions.append(json.loads(line)["caption"])
+
+    num_samples = len(captions)
+    _kv(cfg, "tokenizing",
+         f"{num_samples:,} captions from {jsonl_path.name}  seq_length={seq_length}")
+
+    sizes: list[int] = []
+    doc_idx: list[int] = [0]
+
+    with open(bin_path, "wb") as data_file:
+        for caption in captions:
+            token_ids = tokenizer.encode(caption, add_special_tokens=True)
+            # Truncate or pad to exact seq_length
+            if len(token_ids) > seq_length:
+                token_ids = token_ids[:seq_length]
+            elif len(token_ids) < seq_length:
+                token_ids = token_ids + [pad_id] * (seq_length - len(token_ids))
+            tokens = np.array(token_ids, dtype=dtype)
+            data_file.write(tokens.tobytes(order="C"))
+            sizes.append(seq_length)
+            doc_idx.append(len(sizes))
+
+    _write_megatron_idx(idx_path, sizes, doc_idx)
+
     bin_mb = bin_path.stat().st_size / (1024 * 1024)
     idx_mb = idx_path.stat().st_size / (1024 * 1024)
     _kv(cfg, "data", f"{bin_path.name} ({bin_mb:.1f} MB)  {idx_path.name} ({idx_mb:.2f} MB)")
+
+
+def _generate_synthetic_data(
+    cfg: DictConfig,
+    bin_path: Path,
+    idx_path: Path,
+    num_samples: int,
+    seq_length: int,
+    vocab_size: int,
+) -> None:
+    """Generate synthetic random-token Megatron binary data for benchmarking."""
+    dtype = np.int32
+
+    _kv(cfg, "generating",
+         f"{num_samples:,} synthetic samples  seq_length={seq_length}  vocab={vocab_size:,}")
+
+    bin_path.parent.mkdir(parents=True, exist_ok=True)
+    rng = np.random.RandomState(cfg.seed)
+
+    sizes: list[int] = []
+    doc_idx: list[int] = [0]
+
+    with open(bin_path, "wb") as data_file:
+        for _ in range(num_samples):
+            tokens = rng.randint(0, vocab_size, size=seq_length, dtype=dtype)
+            data_file.write(tokens.tobytes(order="C"))
+            sizes.append(seq_length)
+            doc_idx.append(len(sizes))
+
+    _write_megatron_idx(idx_path, sizes, doc_idx)
+
+    bin_mb = bin_path.stat().st_size / (1024 * 1024)
+    idx_mb = idx_path.stat().st_size / (1024 * 1024)
+    _kv(cfg, "data", f"{bin_path.name} ({bin_mb:.1f} MB)  {idx_path.name} ({idx_mb:.2f} MB)")
+
+
+def _ensure_megatron_data(cfg: DictConfig, vocab_size: int, tokenizer=None) -> None:
+    """Ensure Megatron binary (.bin/.idx) data exists.
+
+    When ``dataset == "pseudo_camera"`` and the raw JSONL is available,
+    tokenizes real captions.  Otherwise generates synthetic random-token
+    data for benchmarking.
+    """
+    data_dir = Path(cfg.paths.data_dir)
+    t = cfg.training
+    prefix = data_dir / f"{t.dataset}-train"
+    bin_path = Path(f"{prefix}.bin")
+    idx_path = Path(f"{prefix}.idx")
+
+    num_samples = int(t.num_samples)
+    seq_length = int(t.seq_length)
+    dtype_size = np.dtype(np.int32).itemsize
+
+    # Validate existing files by exact expected sizes
+    expected_bin = num_samples * seq_length * dtype_size
+    expected_idx = _expected_idx_size(num_samples)
+
+    if bin_path.exists() and idx_path.exists():
+        if (bin_path.stat().st_size == expected_bin
+                and idx_path.stat().st_size == expected_idx):
+            _kv(cfg, "data", f"found {bin_path.name} + {idx_path.name}")
+            return
+        _kv(cfg, "data", "removing mismatched data files, will regenerate")
+        bin_path.unlink(missing_ok=True)
+        idx_path.unlink(missing_ok=True)
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    # Use real caption data when available, otherwise synthetic
+    dataset_name = str(t.dataset)
+    jsonl_path = data_dir / "pseudo-camera-raw.jsonl"
+
+    if dataset_name == "pseudo_camera" and jsonl_path.exists() and tokenizer is not None:
+        _tokenize_captions_to_megatron(
+            cfg, jsonl_path, bin_path, idx_path, seq_length, tokenizer,
+        )
+    else:
+        _generate_synthetic_data(
+            cfg, bin_path, idx_path, num_samples, seq_length, vocab_size,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -364,7 +446,7 @@ def run(cfg: DictConfig) -> None:
     data_format = str(t.data_format)
     if data_format == "megatron":
         _step(cfg, 3, "Data", "Megatron binary (.bin/.idx)")
-        _ensure_megatron_data(cfg, vocab_size)
+        _ensure_megatron_data(cfg, vocab_size, tokenizer=tokenizer)
         console.print()
 
     # -- 4. Build Megatron args -----------------------------------------------
