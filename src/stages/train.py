@@ -118,6 +118,8 @@ def _build_megatron_args(cfg: DictConfig, tokenizer_path: str, num_gpus: int) ->
     add("--lr-decay-style", t.lr_scheduler)
     add("--seed", cfg.seed)
     add("--log-interval", 10)
+    add("--eval-interval", t.train_iters)  # evaluate once at the end
+    add("--eval-iters", 0)                 # no eval samples (100/0/0 split)
 
     # -- Parallelism ----------------------------------------------------------
     add("--tensor-model-parallel-size", t.parallel.tensor)
