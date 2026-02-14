@@ -334,7 +334,7 @@ def run(cfg: DictConfig) -> None:
     if f.turbo_attention:
         os.environ["USE_TURBO_ATTENTION"] = "1"
 
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+    os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
     console.print()
 
     # -- 2. Tokenizer ---------------------------------------------------------
@@ -397,10 +397,17 @@ def run(cfg: DictConfig) -> None:
     _step(cfg, 6, "Train", f"{m.display_name} ({t.train_iters} steps, {num_gpus} GPUs)")
 
     worker = str(WORKER_SCRIPT)
+    # Pick a free port to avoid EADDRINUSE from stale processes
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as _s:
+        _s.bind(("", 0))
+        master_port = str(_s.getsockname()[1])
+
     if num_gpus > 1:
         cmd = [
             "torchrun",
             "--nproc_per_node", str(num_gpus),
+            "--master_port", master_port,
             worker,
         ] + megatron_args
     else:
