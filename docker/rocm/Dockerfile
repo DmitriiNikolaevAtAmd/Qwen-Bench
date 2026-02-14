@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     git-lfs \
     neovim \
     fish \
+    pybind11-dev \
     && git lfs install \
     && rm -rf /var/lib/apt/lists/*
 
