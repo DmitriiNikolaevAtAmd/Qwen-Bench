@@ -141,6 +141,13 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
 if __name__ == "__main__":
     gc.disable()
 
+    # On ROCm (no CUDA runtime), skip legacy fused-kernel compilation
+    # which crashes because CUDA_HOME / nvcc are absent.
+    import torch
+    if not torch.version.cuda:
+        import megatron.legacy.fused_kernels as _fk
+        _fk.load = lambda args: None
+
     from megatron.training import pretrain
     from megatron.core.enums import ModelType
 
