@@ -4,7 +4,7 @@ set -e
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
 
 if [ "$PLATFORM" = "rocm" ]; then
-    DOCKER_ARGS+=(--network=host --cap-add=SYS_PTRACE --security-opt seccomp=unconfined)
+    DOCKER_ARGS+=(--cap-add=SYS_PTRACE --security-opt seccomp=unconfined)
 fi
 
 run_docker \
