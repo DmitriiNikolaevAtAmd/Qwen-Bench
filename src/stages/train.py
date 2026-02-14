@@ -5,6 +5,7 @@ and launches the pretrain worker via torchrun.
 """
 import logging
 import os
+import struct
 import subprocess
 import sys
 import time
@@ -72,15 +73,23 @@ def _kv(cfg: DictConfig, key: str, val: str) -> None:
 # Synthetic Megatron binary data generator (benchmarking)
 # ---------------------------------------------------------------------------
 
+def _expected_idx_size(num_sequences: int) -> int:
+    """Return the exact expected .idx file size for the canonical Megatron format.
+
+    Layout: magic(9) + version(Q=8) + dtype(B=1) + num_seq(Q=8) + num_doc(Q=8)
+            + sizes(num_seq*4) + pointers(num_seq*8) + doc_idx((num_seq+1)*8)
+    """
+    header = 9 + 8 + 1 + 8 + 8  # = 34
+    return header + num_sequences * 4 + num_sequences * 8 + (num_sequences + 1) * 8
+
+
 def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
     """Ensure Megatron binary (.bin/.idx) data exists.
 
-    For benchmarking, generates synthetic random-token data using
-    Megatron's own ``MMapIndexedDatasetBuilder`` so the format is
-    guaranteed to match the reader.
+    For benchmarking, generates synthetic random-token data when the
+    files are missing.  Each sample is one document of ``seq_length``
+    random token ids drawn uniformly from ``[0, vocab_size)``.
     """
-    from megatron.core.datasets.indexed_dataset import MMapIndexedDatasetBuilder
-
     data_dir = Path(cfg.paths.data_dir)
     t = cfg.training
     prefix = data_dir / f"{t.dataset}-train"
@@ -89,11 +98,16 @@ def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
 
     num_samples = int(t.num_samples)
     seq_length = int(t.seq_length)
+    dtype = np.int32
+    dtype_size = np.dtype(dtype).itemsize
 
-    # Validate existing files by checking .bin size matches expectations
-    expected_bin_size = num_samples * seq_length * np.dtype(np.int32).itemsize
+    # Validate existing files by exact expected sizes
+    expected_bin = num_samples * seq_length * dtype_size
+    expected_idx = _expected_idx_size(num_samples)
+
     if bin_path.exists() and idx_path.exists():
-        if bin_path.stat().st_size == expected_bin_size:
+        if (bin_path.stat().st_size == expected_bin
+                and idx_path.stat().st_size == expected_idx):
             _kv(cfg, "data", f"found {bin_path.name} + {idx_path.name}")
             return
         _kv(cfg, "data", "removing mismatched data files, will regenerate")
@@ -106,14 +120,33 @@ def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
     rng = np.random.RandomState(cfg.seed)
 
-    builder = MMapIndexedDatasetBuilder(str(bin_path), dtype=np.int32)
-    for _ in range(num_samples):
-        tokens = torch.from_numpy(
-            rng.randint(0, vocab_size, size=seq_length).astype(np.int32)
-        )
-        builder.add_item(tokens)
-        builder.end_document()
-    builder.finalize(str(idx_path))
+    sizes: list[int] = []
+    doc_idx: list[int] = [0]
+
+    with open(bin_path, "wb") as data_file:
+        for _ in range(num_samples):
+            tokens = rng.randint(0, vocab_size, size=seq_length, dtype=dtype)
+            data_file.write(tokens.tobytes(order="C"))
+            sizes.append(seq_length)
+            doc_idx.append(len(sizes))
+
+    # Write the .idx index file (Megatron MMapIndexedDataset format)
+    # Header: magic(9B) + version(Q=8B) + dtype_code(B=1B) + num_seq(Q) + num_doc(Q)
+    with open(idx_path, "wb") as index:
+        index.write(b"MMIDIDX\x00\x00")                       # 9 bytes  magic
+        index.write(struct.pack("<Q", 1))                      # 8 bytes  version
+        index.write(struct.pack("<B", 4))                      # 1 byte   dtype (int32)
+        index.write(struct.pack("<Q", len(sizes)))             # 8 bytes  num sequences
+        index.write(struct.pack("<Q", len(doc_idx)))           # 8 bytes  num documents
+
+        np.array(sizes, dtype=np.int32).tofile(index)          # sizes
+
+        pointers = np.zeros(len(sizes), dtype=np.int64)        # pointers
+        for i in range(1, len(sizes)):
+            pointers[i] = pointers[i - 1] + sizes[i - 1] * dtype_size
+        pointers.tofile(index)
+
+        np.array(doc_idx, dtype=np.int64).tofile(index)        # doc indices
 
     bin_mb = bin_path.stat().st_size / (1024 * 1024)
     idx_mb = idx_path.stat().st_size / (1024 * 1024)
