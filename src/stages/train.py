@@ -337,6 +337,10 @@ def run(cfg: DictConfig) -> None:
     # Set both names -- ROCm/HIP may still look for the old CUDA name
     os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+    # Required by Megatron when using tensor or context parallelism
+    if int(t.parallel.tensor) > 1 or int(t.parallel.context) > 1:
+        os.environ["CUDA_DEVICE_MAX_CONNECTIONS"] = "1"
     console.print()
 
     # -- 2. Tokenizer ---------------------------------------------------------
