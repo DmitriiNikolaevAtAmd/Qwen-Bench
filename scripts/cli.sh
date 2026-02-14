@@ -3,8 +3,10 @@ set -e
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
 
+PLATFORM_ARGS=()
 if [ "$PLATFORM" = "rocm" ]; then
     DOCKER_ARGS+=(--cap-add=SYS_PTRACE --security-opt seccomp=unconfined)
+    PLATFORM_ARGS+=(training=amd)
 fi
 
 run_docker \
@@ -13,4 +15,4 @@ run_docker \
     --ulimit stack=67108864 \
     --network=host \
     --env-file secrets.env \
-    "$IMAGE" python -m src "$@"
+    "$IMAGE" python -m src "${PLATFORM_ARGS[@]}" "$@"
