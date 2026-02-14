@@ -19,7 +19,7 @@ def model_provider(pre_process=True, post_process=True, **kwargs):
     from megatron.training import get_args
     from megatron.core.models.gpt.gpt_model import GPTModel
     from megatron.core.models.gpt.gpt_layer_specs import (
-        get_gpt_layer_with_transformer_engine_spec,
+        get_gpt_layer_local_spec,
     )
     from megatron.core.transformer.transformer_config import TransformerConfig
 
@@ -48,7 +48,7 @@ def model_provider(pre_process=True, post_process=True, **kwargs):
             recompute_num_layers=args.recompute_num_layers,
         )
 
-    transformer_layer_spec = get_gpt_layer_with_transformer_engine_spec()
+    transformer_layer_spec = get_gpt_layer_local_spec()
 
     model = GPTModel(
         config=config,

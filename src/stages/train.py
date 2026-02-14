@@ -166,6 +166,9 @@ def _build_megatron_args(cfg: DictConfig, tokenizer_path: str, num_gpus: int) ->
     if rc.num_layers:
         add("--recompute-num-layers", rc.num_layers)
 
+    # -- Transformer implementation (local = no TransformerEngine dependency) --
+    add("--transformer-impl", "local")
+
     # -- Tokenizer ------------------------------------------------------------
     add("--tokenizer-type", "HuggingFaceTokenizer")
     add("--tokenizer-model", tokenizer_path)
