@@ -111,6 +111,8 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
         GPTDatasetConfig,
     )
 
+    from megatron.core import parallel_state as mpu
+
     args = get_args()
     tokenizer = get_tokenizer()
 
@@ -124,9 +126,8 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
         reset_position_ids=args.reset_position_ids,
         reset_attention_mask=args.reset_attention_mask,
         eod_mask_loss=args.eod_mask_loss,
+        data_parallel_size=mpu.get_data_parallel_world_size(),
     )
-
-    from megatron.core import parallel_state as mpu
 
     train_ds, valid_ds, test_ds = BlendedMegatronDatasetBuilder(
         GPTDataset,
@@ -164,3 +165,6 @@ if __name__ == "__main__":
             "no_load_rng": True,
         },
     )
+
+    if torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
