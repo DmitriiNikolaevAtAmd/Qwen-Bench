@@ -25,7 +25,7 @@ data: ## Prepare dataset (download, split, store metadata)
 	@./scripts/cli.sh stage=data $(ARGS)
 
 .PHONY: train
-train: ## Run training with LLaMA Factory
+train: ## Run training with NeMo/Megatron
 	@./scripts/cli.sh stage=train $(ARGS)
 
 .PHONY: wrap
