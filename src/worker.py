@@ -121,6 +121,9 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
         split=args.split,
         path_to_cache=args.data_cache_path,
         tokenizer=tokenizer,
+        reset_position_ids=args.reset_position_ids,
+        reset_attention_mask=args.reset_attention_mask,
+        eod_mask_loss=args.eod_mask_loss,
     )
 
     train_ds, valid_ds, test_ds = BlendedMegatronDatasetBuilder(
