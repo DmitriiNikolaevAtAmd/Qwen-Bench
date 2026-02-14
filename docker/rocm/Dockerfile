@@ -44,7 +44,9 @@ RUN pip install --no-cache-dir --upgrade pip packaging wheel setuptools && \
 RUN pip install --no-cache-dir "numpy>=2.0.0,<2.3" "pandas>=2.0.0"
 
 # Megatron-LM (megatron.training is not pip-installable, need full repo on PYTHONPATH)
-RUN git clone --depth 1 https://github.com/NVIDIA/Megatron-LM.git /opt/megatron
+RUN pip install --no-cache-dir pybind11 && \
+    git clone --depth 1 https://github.com/NVIDIA/Megatron-LM.git /opt/megatron && \
+    cd /opt/megatron/megatron/core/datasets && make
 ENV PYTHONPATH="/opt/megatron"
 
 COPY . /workspace/code/
