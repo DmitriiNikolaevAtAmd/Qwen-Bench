@@ -167,7 +167,7 @@ def _build_megatron_args(cfg: DictConfig, tokenizer_path: str, num_gpus: int) ->
         add("--recompute-num-layers", rc.num_layers)
 
     # -- Tokenizer ------------------------------------------------------------
-    add("--tokenizer-type", "HFTokenizer")
+    add("--tokenizer-type", "HuggingFaceTokenizer")
     add("--tokenizer-model", tokenizer_path)
 
     # -- Data -----------------------------------------------------------------

@@ -135,7 +135,7 @@ if __name__ == "__main__":
         ModelType.encoder_or_decoder,
         forward_step,
         args_defaults={
-            "tokenizer_type": "HFTokenizer",
+            "tokenizer_type": "HuggingFaceTokenizer",
             "no_save_optim": True,
             "no_save_rng": True,
             "no_load_optim": True,
