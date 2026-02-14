@@ -1,7 +1,7 @@
 # 1. Training Algorithm (apple-to-apple)
-micro_batch_size: 2
+micro_batch_size: 1
 seq_length: 2048
-gradient_accumulation: 4
+gradient_accumulation: 8
 global_batch_size: 64
 learning_rate: 3.0e-4
 lr_scheduler: cosine
