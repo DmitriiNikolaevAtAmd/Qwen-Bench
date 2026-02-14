@@ -9,8 +9,13 @@ from functools import partial
 import torch
 
 
-def model_provider(pre_process=True, post_process=True):
-    """Build GPTModel from Megatron args."""
+def model_provider(pre_process=True, post_process=True, **kwargs):
+    """Build GPTModel from Megatron args.
+
+    Latest Megatron-LM passes ``config`` as a keyword argument built from
+    the global args.  When provided we use it directly; otherwise we fall
+    back to constructing one ourselves (for older Megatron versions).
+    """
     from megatron.training import get_args
     from megatron.core.models.gpt.gpt_model import GPTModel
     from megatron.core.models.gpt.gpt_layer_specs import (
@@ -20,26 +25,28 @@ def model_provider(pre_process=True, post_process=True):
 
     args = get_args()
 
-    config = TransformerConfig(
-        num_layers=args.num_layers,
-        hidden_size=args.hidden_size,
-        ffn_hidden_size=args.ffn_hidden_size,
-        num_attention_heads=args.num_attention_heads,
-        num_query_groups=getattr(
-            args, "num_query_groups", args.num_attention_heads
-        ),
-        use_cpu_initialization=True,
-        init_method_std=args.init_method_std,
-        bf16=args.bf16,
-        fp16=args.fp16,
-        tensor_model_parallel_size=args.tensor_model_parallel_size,
-        pipeline_model_parallel_size=args.pipeline_model_parallel_size,
-        sequence_parallel=args.sequence_parallel,
-        fp32_residual_connection=args.fp32_residual_connection,
-        recompute_granularity=args.recompute_granularity,
-        recompute_method=args.recompute_method,
-        recompute_num_layers=args.recompute_num_layers,
-    )
+    config = kwargs.get("config")
+    if config is None:
+        config = TransformerConfig(
+            num_layers=args.num_layers,
+            hidden_size=args.hidden_size,
+            ffn_hidden_size=args.ffn_hidden_size,
+            num_attention_heads=args.num_attention_heads,
+            num_query_groups=getattr(
+                args, "num_query_groups", args.num_attention_heads
+            ),
+            use_cpu_initialization=True,
+            init_method_std=args.init_method_std,
+            bf16=args.bf16,
+            fp16=args.fp16,
+            tensor_model_parallel_size=args.tensor_model_parallel_size,
+            pipeline_model_parallel_size=args.pipeline_model_parallel_size,
+            sequence_parallel=args.sequence_parallel,
+            fp32_residual_connection=args.fp32_residual_connection,
+            recompute_granularity=args.recompute_granularity,
+            recompute_method=args.recompute_method,
+            recompute_num_layers=args.recompute_num_layers,
+        )
 
     transformer_layer_spec = get_gpt_layer_with_transformer_engine_spec()
 
