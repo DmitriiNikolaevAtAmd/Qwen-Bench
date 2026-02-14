@@ -1,4 +1,4 @@
-# utils package for Qwen-Bench
+# utils package for ekvi:rival
 from utils.dataset import (
     check_dataset_exists,
     generate_dataset_info,
