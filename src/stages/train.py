@@ -5,11 +5,13 @@ and launches the pretrain worker via torchrun.
 """
 import logging
 import os
+import struct
 import subprocess
 import sys
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
 import yaml
 from omegaconf import DictConfig, OmegaConf
@@ -65,6 +67,75 @@ def _step(cfg: DictConfig, n: int, title: str, detail: str = "") -> None:
 def _kv(cfg: DictConfig, key: str, val: str) -> None:
     c = cfg.theme.colors
     console.print(f"  [{c.success}]{key}[/{c.success}]  {val}")
+
+
+# ---------------------------------------------------------------------------
+# Synthetic Megatron binary data generator (benchmarking)
+# ---------------------------------------------------------------------------
+
+_IDX_MAGIC = b"MMIDIDX\x00\x00"
+_IDX_VERSION = 1
+_DTYPE_CODE_INT32 = 4
+
+
+def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
+    """Ensure Megatron binary (.bin/.idx) data exists.
+
+    For benchmarking, generates synthetic random-token data when the
+    files are missing.  Each sample is one document of ``seq_length``
+    random token ids drawn uniformly from ``[0, vocab_size)``.
+    """
+    data_dir = Path(cfg.paths.data_dir)
+    t = cfg.training
+    prefix = data_dir / f"{t.dataset}-train"
+    bin_path = Path(f"{prefix}.bin")
+    idx_path = Path(f"{prefix}.idx")
+
+    if bin_path.exists() and idx_path.exists():
+        _kv(cfg, "data", f"found {bin_path.name} + {idx_path.name}")
+        return
+
+    num_samples = int(t.num_samples)
+    seq_length = int(t.seq_length)
+    dtype = np.int32
+    dtype_size = np.dtype(dtype).itemsize
+
+    _kv(cfg, "generating",
+         f"{num_samples:,} synthetic samples  seq_length={seq_length}  vocab={vocab_size:,}")
+
+    data_dir.mkdir(parents=True, exist_ok=True)
+    rng = np.random.RandomState(cfg.seed)
+
+    sizes: list[int] = []
+    doc_idx: list[int] = [0]
+
+    with open(bin_path, "wb") as data_file:
+        for _ in range(num_samples):
+            tokens = rng.randint(0, vocab_size, size=seq_length, dtype=dtype)
+            data_file.write(tokens.tobytes(order="C"))
+            sizes.append(seq_length)
+            doc_idx.append(len(sizes))
+
+    # Write the .idx index file (Megatron MMapIndexedDataset format)
+    with open(idx_path, "wb") as index:
+        index.write(_IDX_MAGIC)
+        index.write(struct.pack("<Q", _IDX_VERSION))
+        index.write(struct.pack("<Q", _DTYPE_CODE_INT32))
+        index.write(struct.pack("<Q", len(sizes)))        # num sequences
+        index.write(struct.pack("<Q", len(doc_idx)))      # num documents
+
+        np.array(sizes, dtype=np.int32).tofile(index)
+
+        pointers = np.zeros(len(sizes), dtype=np.int64)
+        for i in range(1, len(sizes)):
+            pointers[i] = pointers[i - 1] + sizes[i - 1] * dtype_size
+        pointers.tofile(index)
+
+        np.array(doc_idx, dtype=np.int64).tofile(index)
+
+    bin_mb = bin_path.stat().st_size / (1024 * 1024)
+    idx_mb = idx_path.stat().st_size / (1024 * 1024)
+    _kv(cfg, "data", f"{bin_path.name} ({bin_mb:.1f} MB)  {idx_path.name} ({idx_mb:.2f} MB)")
 
 
 # ---------------------------------------------------------------------------
@@ -268,8 +339,15 @@ def run(cfg: DictConfig) -> None:
     _kv(cfg, "vocab", f"{vocab_size:,}")
     console.print()
 
-    # -- 3. Build Megatron args -----------------------------------------------
-    _step(cfg, 3, "Args", "Hydra config -> Megatron CLI")
+    # -- 3. Ensure training data exists ---------------------------------------
+    data_format = str(t.data_format)
+    if data_format == "megatron":
+        _step(cfg, 3, "Data", "Megatron binary (.bin/.idx)")
+        _ensure_megatron_data(cfg, vocab_size)
+        console.print()
+
+    # -- 4. Build Megatron args -----------------------------------------------
+    _step(cfg, 4, "Args", "Hydra config -> Megatron CLI")
 
     megatron_args = _build_megatron_args(cfg, tokenizer_path, num_gpus)
 
@@ -277,7 +355,7 @@ def run(cfg: DictConfig) -> None:
     _kv(cfg, "args", f"{len(megatron_args)} flags")
     console.print()
 
-    # -- 4. Summary -----------------------------------------------------------
+    # -- 5. Summary -----------------------------------------------------------
     arch = m.architecture
     summary = Table.grid(padding=(0, 2))
     summary.add_column(style="dim")
@@ -300,8 +378,8 @@ def run(cfg: DictConfig) -> None:
     ))
     console.print()
 
-    # -- 5. Launch torchrun ---------------------------------------------------
-    _step(cfg, 4, "Train", f"{m.display_name} ({t.train_iters} steps, {num_gpus} GPUs)")
+    # -- 6. Launch torchrun ---------------------------------------------------
+    _step(cfg, 6, "Train", f"{m.display_name} ({t.train_iters} steps, {num_gpus} GPUs)")
 
     worker = str(WORKER_SCRIPT)
     if num_gpus > 1:
