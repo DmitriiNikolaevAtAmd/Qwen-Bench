@@ -78,6 +78,25 @@ _IDX_VERSION = 1
 _DTYPE_CODE_INT32 = 4
 
 
+def _validate_idx_header(idx_path: Path) -> bool:
+    """Return True if the .idx file has a valid Megatron MMapIndexedDataset header."""
+    try:
+        with open(idx_path, "rb") as f:
+            magic = f.read(9)
+            if magic != _IDX_MAGIC:
+                return False
+            version = struct.unpack("<Q", f.read(8))[0]
+            if version != _IDX_VERSION:
+                return False
+            # dtype code is a single byte in the canonical format
+            dtype_byte = f.read(1)
+            if len(dtype_byte) != 1:
+                return False
+            return True
+    except Exception:
+        return False
+
+
 def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
     """Ensure Megatron binary (.bin/.idx) data exists.
 
@@ -92,8 +111,13 @@ def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
     idx_path = Path(f"{prefix}.idx")
 
     if bin_path.exists() and idx_path.exists():
-        _kv(cfg, "data", f"found {bin_path.name} + {idx_path.name}")
-        return
+        if _validate_idx_header(idx_path):
+            _kv(cfg, "data", f"found {bin_path.name} + {idx_path.name}")
+            return
+        # Corrupt files from a previous run -- remove and regenerate
+        _kv(cfg, "data", "removing corrupt data files, will regenerate")
+        bin_path.unlink(missing_ok=True)
+        idx_path.unlink(missing_ok=True)
 
     num_samples = int(t.num_samples)
     seq_length = int(t.seq_length)
@@ -117,12 +141,13 @@ def _ensure_megatron_data(cfg: DictConfig, vocab_size: int) -> None:
             doc_idx.append(len(sizes))
 
     # Write the .idx index file (Megatron MMapIndexedDataset format)
+    # Header: magic(9B) + version(Q=8B) + dtype_code(B=1B) + num_seq(Q) + num_doc(Q)
     with open(idx_path, "wb") as index:
-        index.write(_IDX_MAGIC)
-        index.write(struct.pack("<Q", _IDX_VERSION))
-        index.write(struct.pack("<Q", _DTYPE_CODE_INT32))
-        index.write(struct.pack("<Q", len(sizes)))        # num sequences
-        index.write(struct.pack("<Q", len(doc_idx)))      # num documents
+        index.write(_IDX_MAGIC)                                # 9 bytes
+        index.write(struct.pack("<Q", _IDX_VERSION))           # 8 bytes
+        index.write(struct.pack("<B", _DTYPE_CODE_INT32))      # 1 byte (!)
+        index.write(struct.pack("<Q", len(sizes)))             # 8 bytes
+        index.write(struct.pack("<Q", len(doc_idx)))           # 8 bytes
 
         np.array(sizes, dtype=np.int32).tofile(index)
 
