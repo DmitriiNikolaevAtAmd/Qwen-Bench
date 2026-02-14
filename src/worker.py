@@ -126,8 +126,13 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
         eod_mask_loss=args.eod_mask_loss,
     )
 
+    from megatron.core import parallel_state as mpu
+
     train_ds, valid_ds, test_ds = BlendedMegatronDatasetBuilder(
-        GPTDataset, train_val_test_num_samples, config
+        GPTDataset,
+        train_val_test_num_samples,
+        lambda: mpu.is_pipeline_first_stage() or mpu.is_pipeline_last_stage(),
+        config,
     ).build()
 
     return train_ds, valid_ds, test_ds
