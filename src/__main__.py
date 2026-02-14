@@ -66,7 +66,8 @@ def _banner(cfg: DictConfig, stage: str) -> None:
 
 def _show_config(cfg: DictConfig) -> None:
     console = _get_console()
-    yaml_str = OmegaConf.to_yaml(cfg)
+    filtered = {k: v for k, v in cfg.items() if k != "theme"}
+    yaml_str = OmegaConf.to_yaml(filtered)
     console.print(Panel(
         Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False, background_color="default"),
         title=f"[{cfg.theme.colors.primary}]Configuration[/{cfg.theme.colors.primary}]",
