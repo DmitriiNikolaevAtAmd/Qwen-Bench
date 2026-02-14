@@ -45,7 +45,7 @@ RUN pip install --no-cache-dir "numpy>=2.0.0,<2.3" "pandas>=2.0.0"
 
 # Megatron-LM (megatron.training is not pip-installable, need full repo on PYTHONPATH)
 RUN git clone --depth 1 https://github.com/NVIDIA/Megatron-LM.git /opt/megatron
-ENV PYTHONPATH="/opt/megatron:${PYTHONPATH}"
+ENV PYTHONPATH="/opt/megatron"
 
 COPY . /workspace/code/
 
