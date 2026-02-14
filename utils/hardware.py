@@ -1,4 +1,4 @@
-"""Hardware detection and GPU/device utilities for ekvi:rival."""
+"""Hardware detection and GPU/device utilities for ekvirival."""
 from typing import Any, Dict
 
 

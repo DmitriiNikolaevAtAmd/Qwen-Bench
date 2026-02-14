@@ -131,7 +131,7 @@ Switch config groups:
 ## Project Structure
 
 ```
-ekvi:rival/
+ekvirival/
 ├── config/                      # Hydra config hierarchy
 │   ├── config.yaml
 │   ├── model/

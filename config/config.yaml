@@ -9,10 +9,10 @@ stage: train
 with_data: false
 
 paths:
-  data_dir: /data/qwen-bench
+  data_dir: /data/ekvirival
   output_dir: ./output
-  hf_home: /data/qwen-bench/.cache
-  hf_datasets_cache: /data/qwen-bench/.cache/datasets
+  hf_home: /data/ekvirival/.cache
+  hf_datasets_cache: /data/ekvirival/.cache/datasets
 
 seed: 42
 

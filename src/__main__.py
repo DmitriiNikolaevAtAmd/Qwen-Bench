@@ -28,7 +28,7 @@ def _fetch_quote() -> tuple[str, str] | None:
     try:
         url = f"{QUOTE_URL}?nocache={time.time()}"
         req = urllib.request.Request(url, headers={
-            "User-Agent": "ekvi-rival",
+            "User-Agent": "ekvirival",
             "Cache-Control": "no-cache",
         })
         with urllib.request.urlopen(req, timeout=QUOTE_TIMEOUT) as resp:

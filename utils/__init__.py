@@ -1,4 +1,4 @@
-# utils package for ekvi:rival
+# utils package for ekvirival
 from utils.dataset import (
     check_dataset_exists,
     generate_dataset_info,
