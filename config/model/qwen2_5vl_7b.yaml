@@ -2,4 +2,16 @@ name: qwen
 display_name: Qwen 2.5 7B
 model_name_or_path: Qwen/Qwen2.5-7B
 tokenizer_path: Qwen/Qwen2.5-7B
-recipe: qwen25_7b
+
+architecture:
+  num_layers: 28
+  hidden_size: 3584
+  num_attention_heads: 28
+  num_query_groups: 4
+  ffn_hidden_size: 18944
+  max_position_embeddings: 32768
+  normalization: RMSNorm
+  norm_epsilon: 1.0e-6
+  swiglu: true
+  rotary: true
+  untie_embeddings_and_output_weights: true
