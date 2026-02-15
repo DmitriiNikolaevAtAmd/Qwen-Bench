@@ -123,15 +123,19 @@ def run(cfg: DictConfig) -> None:
 
     t_total = time.time()
 
-    if stage == "all":
-        for name in ("data", "train", "eval", "wrap"):
-            _stage_open(cfg, name)
-            stages[name](cfg)
-            _stage_close(cfg, name)
+    # When running 'train', automatically chain: train -> eval -> wrap
+    # (like tprimat: extract metrics, build charts, package output)
+    if stage == "train":
+        pipeline = ("train", "eval", "wrap")
+    elif stage == "all":
+        pipeline = ("data", "train", "eval", "wrap")
     else:
-        _stage_open(cfg, stage)
-        stages[stage](cfg)
-        _stage_close(cfg, stage)
+        pipeline = (stage,)
+
+    for name in pipeline:
+        _stage_open(cfg, name)
+        stages[name](cfg)
+        _stage_close(cfg, name)
 
     elapsed = time.time() - t_total
     mins, secs = divmod(int(elapsed), 60)
