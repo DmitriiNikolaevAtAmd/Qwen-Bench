@@ -21,6 +21,8 @@ ENV HSA_FORCE_FINE_GRAIN_PCIE=1
 ENV TOKENIZERS_PARALLELISM=false
 ENV TRANSFORMERS_VERBOSITY=error
 ENV HF_HUB_DISABLE_PROGRESS_BARS=1
+ENV MPLBACKEND=Agg
+ENV MPLCONFIGDIR=/tmp/matplotlib
 
 ENV RCCL_DEBUG=ERROR
 ENV NCCL_DEBUG=ERROR
@@ -39,9 +41,9 @@ ENV PIP_ROOT_USER_ACTION=ignore
 RUN mkdir -p /workspace/code
 WORKDIR /workspace/code
 
-COPY requirements/rocm/requirements.txt /workspace/code/requirements/rocm/
+COPY reqs/rocm/requirements.txt /workspace/code/reqs/rocm/
 RUN pip install --no-cache-dir --upgrade pip packaging wheel setuptools && \
-    pip install --no-cache-dir -r requirements/rocm/requirements.txt
+    pip install --no-cache-dir -r reqs/rocm/requirements.txt
 
 # Ensure numpy/pandas stay compatible after all installs (Python 3.10 caps numpy <2.3)
 RUN pip install --no-cache-dir "numpy>=2.0.0,<2.3" "pandas>=2.0.0"

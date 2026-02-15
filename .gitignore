@@ -58,6 +58,7 @@ checkpoints/
 .coverage
 htmlcov/
 
+modules
 .vscode/
 .idea/
 .cursor/

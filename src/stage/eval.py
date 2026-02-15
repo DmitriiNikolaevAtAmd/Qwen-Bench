@@ -13,8 +13,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from src import console
-from src.evaluate.compare import create_comparison_plot, load_benchmarks, print_summary
-from src.evaluate.extract import extract_from_log
+from src.eval.compare import create_comparison_plot, load_benchmarks, print_summary
+from src.eval.extract import extract_from_log
 
 
 # ---------------------------------------------------------------------------

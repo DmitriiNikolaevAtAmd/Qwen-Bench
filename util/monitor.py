@@ -13,8 +13,8 @@ from typing import Optional
 
 import torch
 
-from utils.hardware import detect_gpu_info, detect_platform, get_gpu_core_count
-from utils.logging import round_floats
+from util.hardware import detect_gpu_info, detect_platform, get_gpu_core_count
+from util.logging import round_floats
 
 try:
     from transformers import (

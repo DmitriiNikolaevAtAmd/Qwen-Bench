@@ -7,8 +7,11 @@ and prints a summary table.
 Adapted from the tprimat project's evaluate/compare.py.
 """
 import json
+import logging
 from pathlib import Path
 from typing import Any, Optional
+
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 import matplotlib.pyplot as plt
 import numpy as np

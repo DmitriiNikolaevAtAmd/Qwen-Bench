@@ -18,6 +18,8 @@ ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 ENV TOKENIZERS_PARALLELISM=false
 ENV TRANSFORMERS_VERBOSITY=error
 ENV HF_HUB_DISABLE_PROGRESS_BARS=1
+ENV MPLBACKEND=Agg
+ENV MPLCONFIGDIR=/tmp/matplotlib
 
 ENV NCCL_DEBUG=ERROR
 ENV GLOO_LOG_LEVEL=ERROR
@@ -34,9 +36,9 @@ ENV PIP_ROOT_USER_ACTION=ignore
 RUN mkdir -p /workspace/code
 WORKDIR /workspace/code
 
-COPY requirements/cuda/requirements.txt /workspace/code/requirements/cuda/
+COPY reqs/cuda/requirements.txt /workspace/code/reqs/cuda/
 RUN pip install --no-cache-dir --upgrade pip packaging wheel setuptools && \
-    pip install --no-cache-dir -r requirements/cuda/requirements.txt
+    pip install --no-cache-dir -r reqs/cuda/requirements.txt
 
 # Ensure numpy/pandas stay compatible after all installs (Python 3.10 caps numpy <2.3)
 RUN pip install --no-cache-dir "numpy>=2.0.0,<2.3" "pandas>=2.0.0"
@@ -48,6 +50,10 @@ RUN pip install --no-cache-dir pybind11 && \
 ENV PYTHONPATH="/opt/megatron"
 
 COPY . /workspace/code/
+
+# Suppress NVIDIA container startup banner
+RUN rm -f /etc/nvidia/entrypoint.d/10-banner.sh \
+         /etc/nvidia/entrypoint.d/15-container-copyright.sh 2>/dev/null || true
 
 EXPOSE 8000
 
