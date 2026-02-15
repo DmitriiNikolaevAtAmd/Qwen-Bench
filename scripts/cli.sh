@@ -11,9 +11,10 @@ fi
 
 ENV_FILE="config.env"
 if [ ! -f "$ENV_FILE" ]; then
-    echo "Warning: $ENV_FILE not found. Create it from config.tpl:" >&2
-    echo "  cp config.tpl config.env && vi config.env" >&2
+    echo " warn  config.env not found — run: cp config.tpl config.env" >&2
     ENV_FILE="/dev/null"
+elif ! grep -q '^HF_TOKEN=.' "$ENV_FILE" || grep -q 'your_token_here' "$ENV_FILE"; then
+    echo " warn  HF_TOKEN not set in config.env" >&2
 fi
 
 run_docker \
