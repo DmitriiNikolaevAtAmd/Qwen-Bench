@@ -5,6 +5,7 @@ colors:
   banner: "#ff00ff"
   data: "#00ffff"
   train: "#ff00ff"
+  eval: "#00ff99"
   wrap: "#ffff00"
   purge: "#ff0055"
   success: "#00ff00"

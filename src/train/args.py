@@ -118,6 +118,13 @@ def build_megatron_args(cfg: DictConfig, tokenizer_path: str, num_gpus: int) -> 
     add("--split", t.data_split)
     add("--data-cache-path", str(data_dir / "index_cache"))
 
+    # -- Profiling (disabled by default) ---------------------------------------
+    prof = t.profiling
+    if prof.enabled:
+        add("--profile")
+        add("--profile-step-start", prof.step_start)
+        add("--profile-step-end", prof.step_end)
+
     # -- Checkpointing (disabled for benchmarking) ----------------------------
     if not t.checkpointing:
         add("--no-save-optim")

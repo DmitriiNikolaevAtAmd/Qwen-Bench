@@ -5,6 +5,7 @@ colors:
   banner: bright_cyan
   data: bright_blue
   train: bright_magenta
+  eval: bright_cyan
   wrap: bright_yellow
   purge: bright_red
   success: bright_green

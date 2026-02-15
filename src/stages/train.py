@@ -139,6 +139,11 @@ def run(cfg: DictConfig) -> None:
     summary.add_row("dataset", f"{t.dataset}  split={t.data_split}")
     summary.add_row("recompute", str(t.recompute.granularity))
     summary.add_row("fusions", f"nvte_fused={f.nvte_fused_attn}  nvte_flash={f.nvte_flash_attn}  primus={f.primus_turbo}")
+    prof = t.profiling
+    if prof.enabled:
+        summary.add_row("profiling", f"steps {prof.step_start}..{prof.step_end}")
+    else:
+        summary.add_row("profiling", "disabled")
 
     console.print(Panel(
         summary,

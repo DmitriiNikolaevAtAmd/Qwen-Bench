@@ -9,7 +9,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
-VALID_STAGES = ("data", "train", "wrap", "purge", "all")
+VALID_STAGES = ("data", "train", "eval", "wrap", "purge", "all")
 
 QUOTE_URL = "https://zenquotes.io/api/random"
 QUOTE_TIMEOUT = 2
@@ -115,6 +115,7 @@ def main(cfg: DictConfig) -> None:
     os.environ["HF_DATASETS_CACHE"] = str(cfg.paths.hf_datasets_cache)
 
     from src.stages import data as data_stage
+    from src.stages import eval as eval_stage
     from src.stages import purge as purge_stage
     from src.stages import train as train_stage
     from src.stages import wrap as wrap_stage
@@ -122,6 +123,7 @@ def main(cfg: DictConfig) -> None:
     stages = {
         "data": data_stage.run,
         "train": train_stage.run,
+        "eval": eval_stage.run,
         "wrap": wrap_stage.run,
         "purge": purge_stage.run,
     }
@@ -129,7 +131,7 @@ def main(cfg: DictConfig) -> None:
     t_total = time.time()
 
     if stage == "all":
-        for name in ("data", "train", "wrap"):
+        for name in ("data", "train", "eval", "wrap"):
             _stage_open(cfg, name)
             t0 = time.time()
             stages[name](cfg)

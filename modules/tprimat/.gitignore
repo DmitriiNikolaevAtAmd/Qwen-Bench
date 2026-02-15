@@ -1,0 +1,156 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.png
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# PyTorch
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# Benchmarking outputs
+output/
+*output*/
+*output*
+benchmark_results/
+comparison_plot.png
+comparison_report.md
+
+# Logs
+*.log
+logs/
+*.out
+*.err
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Numeric-only directories
+[0-9]*/
+![0-9]*[!0-9]*/
+
+# NeMo/Megatron specific
+nemo_experiments/
+results/
+.nemo_cache/
+
+# Profiling data
+*.prof
+*.trace
+*.json.gz
+*.qdrep
+*.sqlite
+
+# Large data files
+*.npy
+*.npz
+data/
+datasets/
+
+# Model weights (optional - uncomment if you don't want to track them)
+# *.safetensors
+# *.bin
+# models/
+
+# Environment variables and secrets
+.env
+.env.local
+secrets.env
+cache/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.tar.bz2
+*.tbz2
+*.tar.xz
+*.txz
+*.rar
+*.7z
+*.gz
+*.bz2
+*.xz
+*.lz
+*.lzma
+*.cab
+*.iso
+*.dmg

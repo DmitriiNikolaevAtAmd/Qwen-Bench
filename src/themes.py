@@ -11,6 +11,7 @@ def apply_theme(theme_cfg: DictConfig) -> None:
         "banner": f"bold {colors.banner}",
         "stage.data": f"bold {colors.data}",
         "stage.train": f"bold {colors.train}",
+        "stage.eval": f"bold {colors.eval}",
         "stage.wrap": f"bold {colors.wrap}",
         "stage.purge": f"bold {colors.purge}",
         "step": f"bold {colors.primary}",

@@ -1,0 +1,10 @@
+secrets.env
+output/
+*.log
+*.pyc
+__pycache__/
+venv/
+.git/
+.gitignore
+*.md
+changes.diff
