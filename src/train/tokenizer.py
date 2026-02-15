@@ -23,5 +23,5 @@ def ensure_hf_token(repo_id: str) -> None:
     elif repo_id.startswith("meta-llama/"):
         raise RuntimeError(
             f"HF_TOKEN required for gated repo: {repo_id}. "
-            "Set HF_TOKEN in the environment or in server.env."
+            "Set HF_TOKEN in the Dockerfile ENV or host environment."
         )

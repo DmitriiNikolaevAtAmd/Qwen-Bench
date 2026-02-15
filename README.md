@@ -5,10 +5,10 @@ GPU training benchmark comparing AMD and NVIDIA platforms using NeMo/Megatron.
 ## Quick Start
 
 ```bash
-# on training servers:
+# on training servers (for make build):
 cp server.tpl server.env   # set HF_TOKEN
 
-# on local machine:
+# on local machine (for make fetch):
 cp local.tpl local.env     # set CUDA_SERVER, ROCM_SERVER, paths
 
 ./scripts/build.sh
