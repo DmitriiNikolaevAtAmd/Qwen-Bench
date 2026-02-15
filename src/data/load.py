@@ -81,11 +81,12 @@ def load_pseudo_camera(num_samples: int, output_file: str):
         padding=(1, 2),
     ))
 
-    hf_token = os.environ.get("HF_TOKEN")
-    if not hf_token or hf_token == "your_token_here":
-        console.print("  [yellow]warn[/yellow]  HF_TOKEN not set")
-    else:
+    hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+    if hf_token and hf_token != "your_token_here":
         console.print("  [green]auth[/green]  HF_TOKEN")
+    else:
+        hf_token = None
+        console.print("  [dim]auth[/dim]  HF_TOKEN not set (public repos only)")
 
     clone_dir = Path(os.environ.get("HF_HOME", f"{DATA_DIR}/.cache")) / "pseudo-camera-10k"
     clone_repo(clone_dir, hf_token)
