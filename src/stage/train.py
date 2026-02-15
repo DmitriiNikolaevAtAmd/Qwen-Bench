@@ -11,10 +11,8 @@ import time
 from pathlib import Path
 
 import torch
-import yaml
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 from rich.panel import Panel
-from rich.syntax import Syntax
 from rich.table import Table
 
 from src import console
@@ -50,22 +48,6 @@ def run(cfg: DictConfig) -> None:
     c = cfg.theme.colors
     t = cfg.training
     m = cfg.model
-
-    # -- Display training config panel ----------------------------------------
-    train_dict = OmegaConf.to_container(t, resolve=True)
-    yaml_str = yaml.dump(train_dict, default_flow_style=False, sort_keys=False)
-    console.print(Panel(
-        Syntax(
-            yaml_str, "yaml",
-            theme=cfg.theme.syntax,
-            line_numbers=False,
-            background_color="default",
-        ),
-        title=f"[{c.train}]Training[/{c.train}]",
-        border_style="dim",
-        padding=(1, 2),
-    ))
-    console.print()
 
     # -- 1. Environment -------------------------------------------------------
     _step(cfg, 1, "Environment", "CUDA, seeds")
