@@ -26,7 +26,8 @@ class EnergonGPTDataset(Dataset):
     for the last position).
     """
 
-    def __init__(self, data_path: str, tokenizer, seq_length: int) -> None:
+    def __init__(self, data_path: str, tokenizer, seq_length: int,
+                 min_samples: int = 0) -> None:
         train_dir = os.path.join(data_path, "train")
         shard_files = sorted(glob.glob(os.path.join(train_dir, "*.tar")))
 
@@ -68,17 +69,22 @@ class EnergonGPTDataset(Dataset):
         ).reshape(num_samples, sample_len)
         self.seq_length = seq_length
 
+        # Virtual size: cycle through real samples if min_samples is larger
+        self._real_len = num_samples
+        self._virtual_len = max(num_samples, min_samples)
+
         logger.info(
             "EnergonGPTDataset: %d shards, %d tokens, %d samples "
-            "(seq_length=%d)",
+            "(seq_length=%d, virtual=%d)",
             len(shard_files), len(all_tokens), num_samples, seq_length,
+            self._virtual_len,
         )
 
     def __len__(self) -> int:
-        return len(self.data)
+        return self._virtual_len
 
     def __getitem__(self, idx: int) -> dict:
-        sample = self.data[idx]
+        sample = self.data[idx % self._real_len]
         tokens = torch.tensor(sample[:-1], dtype=torch.long)
         labels = torch.tensor(sample[1:], dtype=torch.long)
         loss_mask = torch.ones(self.seq_length, dtype=torch.float32)

@@ -125,6 +125,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
         data_path=args.data_path[0],
         tokenizer=tokenizer,
         seq_length=args.seq_length,
+        min_samples=train_val_test_num_samples[0],
     )
 
     return train_ds, None, None
