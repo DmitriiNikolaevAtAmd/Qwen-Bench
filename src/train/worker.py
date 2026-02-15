@@ -4,6 +4,7 @@ Launched via torchrun by the training stage orchestrator.
 All configuration is passed as Megatron-style command-line arguments.
 """
 import gc
+import os
 import sys
 from functools import partial
 from pathlib import Path
@@ -143,6 +144,17 @@ if __name__ == "__main__":
 
     from megatron.training import pretrain
     from megatron.core.enums import ModelType
+
+    # Suppress noisy Megatron internals
+    import logging as _logging
+    import megatron.training.arguments as _margs
+    _margs._print_args = lambda *a, **kw: None              # argument dump
+    _logging.getLogger("megatron").setLevel(_logging.WARNING)  # param buffers, optimizer, scheduler
+
+    # Dataset logger: only rank 0
+    _rank = int(os.environ.get("RANK", os.environ.get("LOCAL_RANK", "0")))
+    if _rank != 0:
+        _logging.getLogger("src.train.dataset").setLevel(_logging.WARNING)
 
     pretrain(
         train_valid_test_datasets_provider,
