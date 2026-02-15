@@ -14,5 +14,5 @@ run_docker \
     --ulimit memlock=-1 \
     --ulimit stack=67108864 \
     --network=host \
-    --env-file secrets.env \
+    --env-file config.env \
     "$IMAGE" python -m src "${PLATFORM_ARGS[@]}" "$@"

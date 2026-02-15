@@ -103,7 +103,7 @@ datasets/
 
 .env
 .env.local
-secrets.env
+config.env
 cache/
 
 wandb/

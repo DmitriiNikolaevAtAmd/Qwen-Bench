@@ -5,7 +5,7 @@ GPU training benchmark comparing AMD and NVIDIA platforms using NeMo/Megatron.
 ## Quick Start
 
 ```bash
-cp secrets.env.example secrets.env
+cp config.tpl config.env
 # set your HF_TOKEN
 
 ./scripts/build.sh
@@ -177,7 +177,7 @@ ekviduel/
 │   ├── shell.sh
 │   └── cli.sh
 ├── output/
-├── secrets.env.example
+├── config.tpl
 ├── .gitignore
 └── .dockerignore
 ```

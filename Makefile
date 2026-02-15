@@ -28,6 +28,10 @@ data: ## Prepare dataset (download, split, store metadata)
 train: ## Run training with NeMo/Megatron
 	@./scripts/cli.sh stage=train $(ARGS)
 
+.PHONY: fetch
+fetch: ## Fetch output.zip from CUDA/ROCM servers
+	@./scripts/download.sh
+
 .PHONY: eval
 eval: ## Evaluate: load benchmarks, build compare.png
 	@python scripts/eval.py $(ARGS)
