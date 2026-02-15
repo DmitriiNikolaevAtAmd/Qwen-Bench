@@ -28,7 +28,7 @@ def _fetch_quote() -> tuple[str, str] | None:
     try:
         url = f"{QUOTE_URL}?nocache={time.time()}"
         req = urllib.request.Request(url, headers={
-            "User-Agent": "ekvirival",
+            "User-Agent": "ekviduel",
             "Cache-Control": "no-cache",
         })
         with urllib.request.urlopen(req, timeout=QUOTE_TIMEOUT) as resp:
@@ -46,7 +46,7 @@ def _banner(cfg: DictConfig, stage: str) -> None:
     color = _stage_color(cfg, stage)
 
     lines = []
-    lines.append(f"[bold {c.primary}]EKVI:RIVAL[/bold {c.primary}]")
+    lines.append(f"[bold {c.primary}]EKVI:DUEL[/bold {c.primary}]")
 
     quote = _fetch_quote()
     if quote:

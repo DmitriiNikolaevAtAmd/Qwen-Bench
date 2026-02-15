@@ -9,10 +9,10 @@ stage: train
 with_data: false
 
 paths:
-  data_dir: /data/ekvirival
+  data_dir: /data/ekviduel
   output_dir: ./output
-  hf_home: /data/ekvirival/.cache
-  hf_datasets_cache: /data/ekvirival/.cache/datasets
+  hf_home: /data/ekviduel/.cache
+  hf_datasets_cache: /data/ekviduel/.cache/datasets
 
 seed: 42
 

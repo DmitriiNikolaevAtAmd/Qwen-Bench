@@ -1,4 +1,4 @@
-# utils package for ekvirival
+# utils package for ekviduel
 from util.dataset import (
     check_dataset_exists,
     generate_dataset_info,
