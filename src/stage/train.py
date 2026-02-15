@@ -176,15 +176,37 @@ def run(cfg: DictConfig) -> None:
     env["HF_HUB_OFFLINE"] = "1"
     env["TRANSFORMERS_OFFLINE"] = "1"
 
+    # Save training output to log file (like tprimat: training_{platform}_{framework}_{model}_{dataset}.log)
+    output_dir = Path(cfg.paths.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    is_rocm = hasattr(torch.version, "hip") and torch.version.hip is not None
+    platform_tag = "rocm" if is_rocm else "cuda"
+    model_tag = m.get("name", "model")
+    dataset_tag = t.get("dataset", "benchmark")
+    log_file = output_dir / f"training_{platform_tag}_megatron_{model_tag}_{dataset_tag}.log"
+
     t0 = time.time()
-    result = subprocess.run(cmd, env=env)
+
+    # Tee: stream to both console and log file
+    proc = subprocess.Popen(
+        cmd, env=env,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        bufsize=1, universal_newlines=True,
+    )
+    with open(log_file, "w") as lf:
+        for line in proc.stdout:
+            sys.stdout.write(line)
+            lf.write(line)
+    proc.wait()
 
     elapsed = time.time() - t0
 
-    if result.returncode != 0:
+    if proc.returncode != 0:
         console.print(
-            f"  [{c.error}]failed[/{c.error}]  exit code {result.returncode}"
+            f"  [{c.error}]failed[/{c.error}]  exit code {proc.returncode}"
         )
-        raise RuntimeError(f"Training failed with exit code {result.returncode}")
+        raise RuntimeError(f"Training failed with exit code {proc.returncode}")
 
+    _kv(cfg, "log", str(log_file))
     _kv(cfg, "complete", f"{m.display_name}  {elapsed:.1f}s")

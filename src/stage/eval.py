@@ -72,6 +72,14 @@ def run(cfg: DictConfig) -> None:
             sequence_length=t.get("seq_length"),
         )
 
+        # Populate parallelism from config (may be overridden by log parsing)
+        if hasattr(t, "parallel"):
+            cb.tensor_model_parallel_size = getattr(t.parallel, "tensor", 1) or 1
+            cb.pipeline_model_parallel_size = getattr(t.parallel, "pipeline", 1) or 1
+            cb.data_parallel_size = getattr(t.parallel, "data", 1) or 1
+        cb.micro_batch_size = cb.micro_batch_size or t.get("micro_batch_size")
+        cb.gradient_accumulation_steps = t.get("gradient_accumulation", 1) or 1
+
         if cb.step_times:
             filepath = cb.save(max_steps=t.get("train_iters"))
             json_files_created.append(filepath)

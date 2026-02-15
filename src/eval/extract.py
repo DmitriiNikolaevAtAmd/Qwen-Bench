@@ -104,8 +104,37 @@ def extract_from_log(
                 cb.total_params = int(m.group(1))
                 cb.trainable_params = cb.total_params
 
+            # Parallelism: "tensor_model_parallel_size: 2"
+            m = re.search(r"tensor_model_parallel_size[:\s]+(\d+)", line)
+            if m:
+                cb.tensor_model_parallel_size = int(m.group(1))
+
+            m = re.search(r"pipeline_model_parallel_size[:\s]+(\d+)", line)
+            if m:
+                cb.pipeline_model_parallel_size = int(m.group(1))
+
+            m = re.search(r"data_parallel_size[:\s]+(\d+)", line)
+            if m:
+                cb.data_parallel_size = int(m.group(1))
+
+            # Micro batch size: "micro_batch_size: 1"
+            m = re.search(r"micro_batch_size[:\s]+(\d+)", line)
+            if m and cb.micro_batch_size is None:
+                cb.micro_batch_size = int(m.group(1))
+
+            # Global batch size from log: "global_batch_size: 64"
+            m = re.search(r"global_batch_size[:\s]+(\d+)", line)
+            if m and cb.global_batch_size is None:
+                cb.global_batch_size = int(m.group(1))
+
     # Compute total time from step times
     if cb.step_times:
         cb.total_time = sum(cb.step_times)
+
+    # Infer gradient accumulation steps
+    if cb.global_batch_size and cb.micro_batch_size and cb.data_parallel_size:
+        cb.gradient_accumulation_steps = (
+            cb.global_batch_size // (cb.micro_batch_size * cb.data_parallel_size)
+        ) or 1
 
     return cb

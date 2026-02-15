@@ -93,13 +93,24 @@ def load_benchmarks(results_dir: str) -> dict[str, dict]:
             filename = json_file.stem
             parts = filename.split("_")
 
-            # Parse: train_{framework}_{model} or train_{platform}_{model}
-            platform = data.get("platform", "unknown")
-            framework = parts[1] if len(parts) >= 3 else "unknown"
-            model = parts[2] if len(parts) >= 3 else "unknown"
+            # Filename convention: train_{platform}_{framework}_{model}_{dataset}
+            # Fallback: train_{framework}_{model}
+            platform_raw = data.get("platform", "unknown")
+            if len(parts) >= 5:
+                # train_cuda_megatron_qwen_bc
+                platform_raw = parts[1]
+                framework = parts[2]
+                model = parts[3]
+            elif len(parts) >= 3:
+                # Legacy: train_{framework}_{model}
+                framework = parts[1]
+                model = parts[2]
+            else:
+                framework = "unknown"
+                model = "unknown"
 
             # Normalise platform name
-            platform = {"nvd": "cuda", "nvidia": "cuda", "amd": "rocm"}.get(platform, platform)
+            platform = {"nvd": "cuda", "nvidia": "cuda", "amd": "rocm"}.get(platform_raw, platform_raw)
 
             dataset = data.get("dataset")
             key = f"{platform}-{framework}-{model}"
@@ -144,7 +155,8 @@ def _generate_styles(benchmarks: dict[str, dict]) -> dict[str, dict]:
             fw = d.get("_framework", "unknown")
             mdl = d.get("_model", "unknown")
             fw_disp = FRAMEWORK_DISPLAY.get(fw, fw.upper())
-            label = f"{plat.upper()} {fw_disp} {mdl.capitalize()}"
+            plat_disp = {"cuda": "NVIDIA", "rocm": "AMD"}.get(plat, plat.upper())
+            label = f"{plat_disp} {fw_disp} {mdl.capitalize()}"
             styles[key] = {
                 "color": colors[i % len(colors)],
                 "marker": MARKERS[i % len(MARKERS)],
@@ -197,13 +209,13 @@ def create_comparison_plot(
     # Build a title from discovered platforms
     platforms = {d.get("_platform", "unknown") for d in benchmarks.values()}
     if "cuda" in platforms and "rocm" in platforms:
-        title = "CUDA vs ROCm  --  Training Benchmark Comparison"
+        title = "NVIDIA vs AMD Benchmark Results"
     elif "cuda" in platforms:
-        title = "CUDA  --  Training Benchmark Results"
+        title = "NVIDIA Benchmark Results"
     elif "rocm" in platforms:
-        title = "ROCm  --  Training Benchmark Results"
+        title = "AMD Benchmark Results"
     else:
-        title = "Training Benchmark Results"
+        title = "Benchmark Results"
 
     fig.suptitle(title, fontsize=24, fontweight="black", color=_TITLE_COLOR, y=0.98)
     axes = axes.flatten()
@@ -224,14 +236,14 @@ def create_comparison_plot(
         )
         ax.set_xticks(range(len(labels)))
         ax.set_xticklabels(labels, rotation=40, ha="right", fontsize=13)
-        ax.set_ylabel("Tokens / s / GPU", fontsize=17, color=_ANNOTATION_COLOR)
+        ax.set_ylabel("Tokens/s/GPU", fontsize=17, color=_ANNOTATION_COLOR)
         for bar, val in zip(bars, values):
             ax.text(
                 bar.get_x() + bar.get_width() / 2.0, bar.get_height() + 40,
                 f"{val:,.0f}", ha="center", va="bottom", fontsize=14,
                 fontweight="bold", color=_ANNOTATION_COLOR,
             )
-    _style_bar(ax, "Per-GPU Throughput")
+    _style_bar(ax, "Average Per-GPU Throughput")
 
     # -- (b) Memory bar chart --------------------------------------------------
     ax = axes[1]
@@ -251,15 +263,22 @@ def create_comparison_plot(
         has_a = any(v > 0 for v in mem_alloc)
         has_r = any(v > 0 for v in mem_resv)
         if has_a and has_r:
-            ax.bar(
+            bars_r = ax.bar(
                 x, mem_resv, bw, color=mem_colors,
                 alpha=_ALPHA * 0.35, edgecolor="#999999",
-                linewidth=0.3, hatch="///", label="Reserved",
+                linewidth=0.3, hatch="///", label="System",
             )
             bars_a = ax.bar(
                 x, mem_alloc, bw, color=mem_colors,
-                edgecolor="white", linewidth=0.4, alpha=_ALPHA, label="Allocated",
+                edgecolor="white", linewidth=0.4, alpha=_ALPHA, label="PyTorch",
             )
+            for bar, val in zip(bars_r, mem_resv):
+                if val > 0:
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2.0, bar.get_height() + 0.5,
+                        f"{val:.1f}", ha="center", va="bottom", fontsize=14,
+                        fontweight="bold", color=_ANNOTATION_COLOR,
+                    )
             for bar, val in zip(bars_a, mem_alloc):
                 if val > 0:
                     ax.text(
@@ -306,7 +325,7 @@ def create_comparison_plot(
             s = styles[key]
             ax.plot(range(len(times)), times, color=s["color"], marker=".", markersize=1.5, alpha=_ALPHA, label=s["label"])
     ax.set_ylim(bottom=0)
-    _style_line(ax, "Step Duration over Time", ylabel="Time (s)")
+    _style_line(ax, "Step Duration over Time", ylabel="Time (secs)")
 
     # -- (f) Gradient norm -----------------------------------------------------
     ax = axes[5]
@@ -350,11 +369,12 @@ def print_summary(benchmarks: dict[str, dict]) -> str:
         loss = data.get("loss_values", [])
         final_loss = loss[-1] if loss else 0
 
-        platform = data.get("_platform", "unknown").upper()
+        plat_raw = data.get("_platform", "unknown")
+        plat_disp = {"cuda": "NVIDIA", "rocm": "AMD"}.get(plat_raw, plat_raw.upper())
         fw = FRAMEWORK_DISPLAY.get(data.get("_framework", ""), data.get("_framework", "unknown"))
         model = data.get("_model", "unknown").capitalize()
 
-        label = f"{platform} {fw} {model}"
+        label = f"{plat_disp} {fw} {model}"
         lines.append(f"{label:<40} {tps:>14,.0f} {step_time:>12.3f}s {final_loss:>12.4f}")
 
     lines.append(sep)

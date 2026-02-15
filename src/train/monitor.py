@@ -77,11 +77,18 @@ class BenchmarkCallback:
         self.gpu_info: dict[str, Any] = {}
         self.num_gpus: int = 0
         self.global_batch_size: Optional[int] = None
+        self.micro_batch_size: Optional[int] = None
         self.sequence_length: Optional[int] = None
         self.total_params: Optional[int] = None
         self.trainable_params: Optional[int] = None
         self.train_start_time: Optional[float] = None
         self.total_time: Optional[float] = None
+
+        # Parallelism metadata
+        self.tensor_model_parallel_size: int = 1
+        self.pipeline_model_parallel_size: int = 1
+        self.data_parallel_size: int = 1
+        self.gradient_accumulation_steps: int = 1
 
     # ------------------------------------------------------------------
     # Manual recording API (for custom loops or post-hoc parsing)
@@ -165,13 +172,19 @@ class BenchmarkCallback:
             "gpu_info": self.gpu_info,
             "timestamp": datetime.now().isoformat(),
             "model_info": {
-                "model_name": self.model_name,
                 "total_params": self.total_params,
                 "trainable_params": self.trainable_params,
+            },
+            "parallelism_config": {
+                "tensor_model_parallel_size": self.tensor_model_parallel_size,
+                "pipeline_model_parallel_size": self.pipeline_model_parallel_size,
+                "data_parallel_size": self.data_parallel_size,
+                "gradient_accumulation_steps": self.gradient_accumulation_steps,
             },
             "training_config": {
                 "max_steps": max_steps or len(self.step_times),
                 "global_batch_size": self.global_batch_size or "N/A",
+                "micro_batch_size": self.micro_batch_size or "N/A",
                 "sequence_length": self.sequence_length or "N/A",
                 "num_gpus": self.num_gpus,
             },
@@ -209,17 +222,23 @@ class BenchmarkCallback:
         return results
 
     def save(self, max_steps: Optional[int] = None) -> Path:
-        """Build results and write to a JSON file. Returns the file path."""
+        """Build results and write to a JSON file. Returns the file path.
+
+        Filename convention: train_{platform}_{framework}_{model}_{dataset}.json
+        (e.g. train_cuda_megatron_qwen_bc.json)
+        """
         results = self.build_results(max_steps)
         results = round_floats(results)
 
-        if self.framework and self.model_name:
-            filename = f"train_{self.framework}_{self.model_name}.json"
-        elif self.model_name:
-            filename = f"train_{self.platform}_{self.model_name}.json"
-        else:
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"train_{self.platform}_{ts}.json"
+        parts = ["train"]
+        parts.append(self.platform or "unknown")
+        if self.framework:
+            parts.append(self.framework)
+        if self.model_name:
+            parts.append(self.model_name)
+        if self.dataset:
+            parts.append(self.dataset)
+        filename = "_".join(parts) + ".json"
 
         filepath = self.output_dir / filename
         with open(filepath, "w") as f:
