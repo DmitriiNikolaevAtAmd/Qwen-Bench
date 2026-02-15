@@ -6,7 +6,6 @@ from pathlib import Path
 
 from omegaconf import DictConfig, OmegaConf
 from rich.panel import Panel
-from rich.table import Table
 
 VALID_STAGES = ("data", "train", "eval", "wrap", "purge", "all")
 
@@ -79,12 +78,12 @@ def _stage_open(cfg: DictConfig, name: str) -> None:
     console.print()
 
 
-def _stage_close(cfg: DictConfig, name: str, elapsed: float) -> None:
+def _stage_close(cfg: DictConfig, name: str) -> None:
     console = _get_console()
     color = _stage_color(cfg, name)
     console.print()
     console.rule(
-        f"[bold {color}]</{name.capitalize()}>[/bold {color}]  [dim]{elapsed:.1f}s[/dim]",
+        f"[bold {color}]</{name.capitalize()}>[/bold {color}]",
         style=color,
     )
     console.print()
@@ -127,25 +126,19 @@ def run(cfg: DictConfig) -> None:
     if stage == "all":
         for name in ("data", "train", "eval", "wrap"):
             _stage_open(cfg, name)
-            t0 = time.time()
             stages[name](cfg)
-            _stage_close(cfg, name, time.time() - t0)
+            _stage_close(cfg, name)
     else:
         _stage_open(cfg, stage)
-        t0 = time.time()
         stages[stage](cfg)
-        _stage_close(cfg, stage, time.time() - t0)
+        _stage_close(cfg, stage)
 
     elapsed = time.time() - t_total
-
+    mins, secs = divmod(int(elapsed), 60)
+    duration = f"{mins}m {secs}s" if mins else f"{secs}s"
     c = cfg.theme.colors
-    result = Table.grid(padding=(0, 1))
-    result.add_row(
-        f"[bold {c.success}]done[/bold {c.success}]",
-        f"[dim]{elapsed:.1f}s[/dim]",
-    )
     console.print(Panel(
-        result,
+        f"[bold {c.success}]Done[/bold {c.success}]  [dim]{duration}[/dim]",
         border_style="dim",
         padding=(1, 2),
     ))
