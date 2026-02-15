@@ -176,15 +176,18 @@ def run(cfg: DictConfig) -> None:
     env["HF_HUB_OFFLINE"] = "1"
     env["TRANSFORMERS_OFFLINE"] = "1"
 
-    # Save training output to log file (like tprimat: training_{platform}_{framework}_{model}_{dataset}.log)
+    # Save training output to log file: training_{platform}_{fw}_{model}_{dataset}.log
     output_dir = Path(cfg.paths.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    from src.eval.extract import abbrev_framework, abbrev_dataset
 
     is_rocm = hasattr(torch.version, "hip") and torch.version.hip is not None
     platform_tag = "rocm" if is_rocm else "cuda"
     model_tag = m.get("name", "model")
-    dataset_tag = t.get("dataset", "benchmark")
-    log_file = output_dir / f"training_{platform_tag}_megatron_{model_tag}_{dataset_tag}.log"
+    dataset_tag = abbrev_dataset(t.get("dataset", "benchmark"))
+    fw_tag = abbrev_framework("megatron")
+    log_file = output_dir / f"training_{platform_tag}_{fw_tag}_{model_tag}_{dataset_tag}.log"
 
     t0 = time.time()
 

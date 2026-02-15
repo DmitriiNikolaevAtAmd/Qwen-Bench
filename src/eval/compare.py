@@ -80,8 +80,84 @@ MARKERS = ["o", "s", "^", "D", "v", "p", "h", "*"]
 # -- Load benchmarks ----------------------------------------------------------
 
 
+def _load_config(json_path: Path) -> dict:
+    """Try to load config.yaml from the same directory as a JSON file."""
+    try:
+        import yaml
+    except ImportError:
+        return {}
+    cfg_path = json_path.parent / "config.yaml"
+    if not cfg_path.exists():
+        return {}
+    try:
+        with open(cfg_path) as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+
+def _compute_stats(data: dict, cfg: dict) -> None:
+    """Compute performance_metrics and memory_metrics from time-series arrays."""
+    step_times = data.get("step_times", [])
+    if len(step_times) > 1:
+        steady = step_times[1:]  # skip warmup
+    else:
+        steady = step_times
+
+    avg_step = sum(steady) / len(steady) if steady else 0
+
+    # Throughput: need global_batch_size, seq_length, num_gpus from config
+    training = cfg.get("training", {})
+    gbs = training.get("global_batch_size") or data.get("training_config", {}).get("global_batch_size")
+    seq = training.get("seq_length") or data.get("training_config", {}).get("sequence_length")
+    ngpu = training.get("parallel", {}).get("data") or data.get("training_config", {}).get("num_gpus") or 1
+
+    tps = None
+    tps_gpu = None
+    if gbs and seq and avg_step > 0:
+        tps = gbs * seq / avg_step
+        tps_gpu = tps / ngpu
+
+    data["performance_metrics"] = {
+        "total_steps": len(step_times),
+        "total_time_seconds": round(sum(step_times), 2),
+        "avg_step_time_seconds": round(avg_step, 5),
+        "tokens_per_second": round(tps, 2) if tps else None,
+        "tokens_per_second_per_gpu": round(tps_gpu, 2) if tps_gpu else None,
+    }
+
+    # Memory metrics from arrays
+    mem_alloc = data.get("memory_allocated", [])
+    mem_resv = data.get("memory_reserved", [])
+    if mem_alloc or mem_resv:
+        mm: dict[str, Any] = {}
+        if mem_alloc:
+            mm["peak_memory_allocated_gb"] = max(mem_alloc)
+            mm["avg_memory_allocated_gb"] = round(sum(mem_alloc) / len(mem_alloc), 2)
+        if mem_resv:
+            mm["peak_memory_reserved_gb"] = max(mem_resv)
+            mm["avg_memory_reserved_gb"] = round(sum(mem_resv) / len(mem_resv), 2)
+        data["memory_metrics"] = mm
+
+
+# Reverse abbreviation maps for display
+_FRAMEWORK_FULL = {
+    "mega": "megatron",
+    "nemo": "nemo",
+    "prim": "primus",
+    "deep": "deepspeed",
+    "tran": "transformers",
+    "fsdp": "fsdp",
+    "megatron": "megatron",
+}
+
+
 def load_benchmarks(results_dir: str) -> dict[str, dict]:
-    """Discover and load all ``train_*.json`` benchmark files."""
+    """Discover and load all ``train_*.json`` benchmark files.
+
+    Filename convention: train_{platform}_{framework}_{model}_{dataset}.json
+    Metadata is parsed from the filename; stats are computed from arrays.
+    """
     results_path = Path(results_dir)
     benchmarks: dict[str, dict] = {}
 
@@ -90,38 +166,46 @@ def load_benchmarks(results_dir: str) -> dict[str, dict]:
             with open(json_file, "r") as f:
                 data = json.load(f)
 
-            filename = json_file.stem
-            parts = filename.split("_")
+            parts = json_file.stem.split("_")
 
-            # Filename convention: train_{platform}_{framework}_{model}_{dataset}
-            # Fallback: train_{framework}_{model}
-            platform_raw = data.get("platform", "unknown")
+            # train_{platform}_{framework}_{model}_{dataset}
             if len(parts) >= 5:
-                # train_cuda_megatron_qwen_bc
                 platform_raw = parts[1]
                 framework = parts[2]
                 model = parts[3]
+                dataset = "_".join(parts[4:])
+            elif len(parts) >= 4:
+                platform_raw = parts[1]
+                framework = parts[2]
+                model = parts[3]
+                dataset = None
             elif len(parts) >= 3:
-                # Legacy: train_{framework}_{model}
+                platform_raw = data.get("platform", parts[1])
                 framework = parts[1]
                 model = parts[2]
+                dataset = None
             else:
-                framework = "unknown"
-                model = "unknown"
+                continue
 
-            # Normalise platform name
+            # Normalise platform
             platform = {"nvd": "cuda", "nvidia": "cuda", "amd": "rocm"}.get(platform_raw, platform_raw)
-
-            dataset = data.get("dataset")
-            key = f"{platform}-{framework}-{model}"
-            if dataset:
-                key = f"{key}-{dataset}"
+            # Resolve framework abbreviation
+            framework_full = _FRAMEWORK_FULL.get(framework, framework)
 
             data["_platform"] = platform
-            data["_framework"] = framework
+            data["_framework"] = framework_full
             data["_model"] = model
-            data["_dataset"] = dataset
+            data["_dataset"] = dataset or data.get("dataset")
+
+            key = f"{platform}-{framework_full}-{model}"
+            if data["_dataset"]:
+                key = f"{key}-{data['_dataset']}"
             data["_key"] = key
+
+            # Compute stats from arrays + config
+            if "performance_metrics" not in data:
+                cfg = _load_config(json_file)
+                _compute_stats(data, cfg)
 
             benchmarks[key] = data
         except Exception:

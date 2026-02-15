@@ -11,15 +11,15 @@ Steps:
 4. Generate a 2x3 comparison plot (compare.png).
 5. Print a summary table.
 """
+import torch
 from pathlib import Path
 
 from omegaconf import DictConfig
 from rich.panel import Panel
-from rich.table import Table
 
 from src import console
 from src.eval.compare import create_comparison_plot, load_benchmarks, print_summary
-from src.eval.extract import extract_from_log
+from src.eval.extract import extract_from_log, save_benchmark
 
 
 # ---------------------------------------------------------------------------
@@ -65,29 +65,20 @@ def run(cfg: DictConfig) -> None:
 
         _step(cfg, 2, "Extract", "Parsing Megatron log output")
 
+        is_rocm = hasattr(torch.version, "hip") and torch.version.hip is not None
+        platform = "rocm" if is_rocm else "cuda"
+
         for log_file in log_files:
-            cb = extract_from_log(
-                log_file=str(log_file),
-                output_dir=str(output_dir),
-                model_name=m.get("name", m.get("display_name", "model")),
-                platform="auto",
-                framework="megatron",
-                dataset=t.get("dataset", "benchmark"),
-                num_gpus=getattr(t.parallel, "data", 1) if hasattr(t, "parallel") else 1,
-                global_batch_size=t.get("global_batch_size"),
-                sequence_length=t.get("seq_length"),
-            )
-
-            # Populate parallelism from config (may be overridden by log parsing)
-            if hasattr(t, "parallel"):
-                cb.tensor_model_parallel_size = getattr(t.parallel, "tensor", 1) or 1
-                cb.pipeline_model_parallel_size = getattr(t.parallel, "pipeline", 1) or 1
-                cb.data_parallel_size = getattr(t.parallel, "data", 1) or 1
-            cb.micro_batch_size = cb.micro_batch_size or t.get("micro_batch_size")
-            cb.gradient_accumulation_steps = t.get("gradient_accumulation", 1) or 1
-
-            if cb.step_times:
-                filepath = cb.save(max_steps=t.get("train_iters"))
+            data = extract_from_log(str(log_file))
+            if data.get("step_times"):
+                filepath = save_benchmark(
+                    data,
+                    output_dir=str(output_dir),
+                    platform=platform,
+                    framework="megatron",
+                    model=m.get("name", "model"),
+                    dataset=t.get("dataset", "benchmark"),
+                )
                 _kv(cfg, "saved", str(filepath))
 
     console.print()
