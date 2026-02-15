@@ -4,9 +4,16 @@ Launched via torchrun by the training stage orchestrator.
 All configuration is passed as Megatron-style command-line arguments.
 """
 import gc
+import sys
 from functools import partial
+from pathlib import Path
 
 import torch
+
+# Ensure project root is importable when launched as a script by torchrun
+_PROJECT_ROOT = str(Path(__file__).resolve().parent.parent.parent)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 
 def model_provider(pre_process=True, post_process=True, **kwargs):
