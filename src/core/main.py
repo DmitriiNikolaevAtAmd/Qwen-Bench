@@ -2,10 +2,10 @@ import json
 import os
 import time
 import urllib.request
+from pathlib import Path
 
 from omegaconf import DictConfig, OmegaConf
 from rich.panel import Panel
-from rich.syntax import Syntax
 from rich.table import Table
 
 VALID_STAGES = ("data", "train", "eval", "wrap", "purge", "all")
@@ -63,17 +63,13 @@ def _banner(cfg: DictConfig, stage: str) -> None:
     console.print()
 
 
-def _show_config(cfg: DictConfig) -> None:
-    console = _get_console()
+def _save_config(cfg: DictConfig) -> None:
+    """Save the resolved configuration (without theme) to output_dir/config.yaml."""
+    output_dir = Path(cfg.paths.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     filtered = {k: v for k, v in cfg.items() if k != "theme"}
     yaml_str = OmegaConf.to_yaml(filtered)
-    console.print(Panel(
-        Syntax(yaml_str, "yaml", theme=cfg.theme.syntax, line_numbers=False, background_color="default"),
-        title=f"[{cfg.theme.colors.primary}]Configuration[/{cfg.theme.colors.primary}]",
-        border_style="dim",
-        padding=(1, 2),
-    ))
-    console.print()
+    (output_dir / "config.yaml").write_text(yaml_str)
 
 
 def _stage_open(cfg: DictConfig, name: str) -> None:
@@ -107,7 +103,7 @@ def run(cfg: DictConfig) -> None:
         )
 
     _banner(cfg, stage)
-    _show_config(cfg)
+    _save_config(cfg)
 
     os.environ["HF_HOME"] = str(cfg.paths.hf_home)
     os.environ["HF_DATASETS_CACHE"] = str(cfg.paths.hf_datasets_cache)
