@@ -1,6 +1,6 @@
 """Megatron-Core GPT pretrain worker.
 
-Launched via torchrun by src/stages/train.py.
+Launched via torchrun by the training stage orchestrator.
 All configuration is passed as Megatron-style command-line arguments.
 """
 import gc

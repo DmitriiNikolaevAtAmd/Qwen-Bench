@@ -40,11 +40,11 @@ From the host, use `scripts/cli.sh` which launches Docker and forwards all argum
 # Prepare data
 ./scripts/cli.sh stage=data
 
-# Train with NVIDIA config (default)
+# Train with CUDA config (default)
 ./scripts/cli.sh stage=train
 
-# Train with AMD config
-./scripts/cli.sh stage=train training=amd
+# Train with ROCm config
+./scripts/cli.sh stage=train training=rocm
 
 # Switch model
 ./scripts/cli.sh stage=train model=llama31_8b
@@ -68,7 +68,7 @@ From the host, use `scripts/cli.sh` which launches Docker and forwards all argum
 ./scripts/shell.sh
 # then:
 python -m src stage=train
-python -m src stage=train training=amd
+python -m src stage=train training=rocm
 ```
 
 ## Configuration
@@ -84,8 +84,8 @@ config/
 ├── data/
 │   └── pseudo_camera.yaml   # dataset, samples, train_split
 ├── training/
-│   ├── nvidia.yaml          # NVIDIA platform config (default)
-│   └── amd.yaml             # AMD platform config
+│   ├── cuda.yaml            # CUDA platform config (default)
+│   └── rocm.yaml            # ROCm platform config
 └── theme/
     ├── nord.yaml
     ├── rainbow.yaml
@@ -104,7 +104,7 @@ Override any value from the command line:
 Switch config groups:
 
 ```bash
-./scripts/cli.sh stage=train training=amd model=llama31_8b
+./scripts/cli.sh stage=train training=rocm model=llama31_8b
 ```
 
 ## Shell Scripts
@@ -140,17 +140,21 @@ ekvirival/
 │   ├── data/
 │   │   └── pseudo_camera.yaml
 │   └── training/
-│       ├── nvidia.yaml
-│       └── amd.yaml
+│       ├── cuda.yaml
+│       └── rocm.yaml
 ├── src/
 │   ├── __init__.py
 │   ├── __main__.py              # Hydra CLI entrypoint
 │   ├── themes.py                # Rich theme system
-│   ├── stages/                  # Pipeline stage implementations
+│   ├── stages/                  # Pipeline stage orchestrators
 │   │   ├── data.py
 │   │   ├── train.py
 │   │   ├── wrap.py
 │   │   └── purge.py
+│   ├── train/                   # Training logic
+│   │   ├── args.py              # Megatron CLI args builder
+│   │   ├── tokenizer.py         # Tokenizer resolution & HF auth
+│   │   └── worker.py            # Megatron pretrain worker
 │   └── data/                    # Data processing scripts
 │       ├── load.py
 │       ├── split.py

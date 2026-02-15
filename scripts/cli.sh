@@ -6,7 +6,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
 PLATFORM_ARGS=()
 if [ "$PLATFORM" = "rocm" ]; then
     DOCKER_ARGS+=(--cap-add=SYS_PTRACE --security-opt seccomp=unconfined)
-    PLATFORM_ARGS+=(training=amd)
+    PLATFORM_ARGS+=(training=rocm)
 fi
 
 run_docker \

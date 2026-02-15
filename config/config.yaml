@@ -1,7 +1,7 @@
 defaults:
   - model: qwen2_5vl_7b
   - data: pseudo_camera
-  - training: nvidia
+  - training: cuda
   - theme: nord
   - _self_
 
