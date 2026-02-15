@@ -101,42 +101,20 @@ def forward_step(data_iterator, model):
 
 
 def train_valid_test_datasets_provider(train_val_test_num_samples):
-    """Build GPT datasets from Megatron binary (.bin/.idx) files."""
+    """Build GPT datasets from Energon/WebDataset shards."""
     from megatron.training import get_args, get_tokenizer
-    from megatron.core.datasets.blended_megatron_dataset_builder import (
-        BlendedMegatronDatasetBuilder,
-    )
-    from megatron.core.datasets.gpt_dataset import (
-        GPTDataset,
-        GPTDatasetConfig,
-    )
-
-    from megatron.core import parallel_state as mpu
+    from src.train.dataset import EnergonGPTDataset
 
     args = get_args()
     tokenizer = get_tokenizer()
 
-    config = GPTDatasetConfig(
-        random_seed=args.seed,
-        sequence_length=args.seq_length,
-        blend=(args.data_path, None),
-        split=args.split,
-        path_to_cache=args.data_cache_path,
+    train_ds = EnergonGPTDataset(
+        data_path=args.data_path[0],
         tokenizer=tokenizer,
-        reset_position_ids=args.reset_position_ids,
-        reset_attention_mask=args.reset_attention_mask,
-        eod_mask_loss=args.eod_mask_loss,
-        data_parallel_size=mpu.get_data_parallel_world_size(),
+        seq_length=args.seq_length,
     )
 
-    train_ds, valid_ds, test_ds = BlendedMegatronDatasetBuilder(
-        GPTDataset,
-        train_val_test_num_samples,
-        lambda: mpu.is_pipeline_first_stage() or mpu.is_pipeline_last_stage(),
-        config,
-    ).build()
-
-    return train_ds, valid_ds, test_ds
+    return train_ds, None, None
 
 
 if __name__ == "__main__":

@@ -153,6 +153,7 @@ ekvirival/
 │   │   └── purge.py
 │   ├── train/                   # Training logic
 │   │   ├── args.py              # Megatron CLI args builder
+│   │   ├── dataset.py           # Energon/WebDataset GPT dataset
 │   │   ├── tokenizer.py         # Tokenizer resolution & HF auth
 │   │   └── worker.py            # Megatron pretrain worker
 │   └── data/                    # Data processing scripts
