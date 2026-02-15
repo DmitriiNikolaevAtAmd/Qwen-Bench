@@ -82,8 +82,14 @@ def get_batch(data_iterator):
 
     if attention_mask is not None:
         attention_mask = attention_mask.cuda()
+
     if position_ids is not None:
         position_ids = position_ids.long().cuda()
+    else:
+        # Generate sequential position IDs: [0, 1, ..., seq_length-1]
+        seq_length = tokens.size(1)
+        position_ids = torch.arange(seq_length, dtype=torch.long, device=tokens.device)
+        position_ids = position_ids.unsqueeze(0).expand_as(tokens)
 
     return tokens, labels, loss_mask, attention_mask, position_ids
 
