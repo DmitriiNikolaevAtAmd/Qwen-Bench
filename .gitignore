@@ -71,6 +71,8 @@ modules
 
 *output*
 !output/.keep
+outputs/
+multirun/
 benchmark_results/
 comparison_plot.png
 comparison_report.md
@@ -103,8 +105,11 @@ datasets/
 
 .env
 .env.local
+.env.*
+*.env
 server.env
 local.env
+config.env
 cache/
 
 wandb/

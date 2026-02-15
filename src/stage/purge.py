@@ -10,7 +10,10 @@ from src import console
 def _remove(cfg: DictConfig, path: Path, label: str) -> tuple[str, str, str]:
     c = cfg.theme.colors
     if path.exists():
-        shutil.rmtree(path)
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
         return (
             f"[{c.error}]removed[/{c.error}]",
             label,
@@ -31,6 +34,8 @@ def run(cfg: DictConfig) -> None:
 
     rows = []
     rows.append(_remove(cfg, output_dir, "output"))
+    for zip_file in sorted(Path(".").glob("*.zip")):
+        rows.append(_remove(cfg, zip_file, f"zip ({zip_file.name})"))
     rows.append(_remove(cfg, hf_home, "hf cache"))
     rows.append(_remove(cfg, hf_datasets_cache, "datasets cache"))
 
