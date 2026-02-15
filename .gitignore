@@ -103,7 +103,8 @@ datasets/
 
 .env
 .env.local
-config.env
+server.env
+local.env
 cache/
 
 wandb/

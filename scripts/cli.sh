@@ -9,12 +9,12 @@ if [ "$PLATFORM" = "rocm" ]; then
     PLATFORM_ARGS+=(training=rocm)
 fi
 
-ENV_FILE="config.env"
+ENV_FILE="server.env"
 if [ ! -f "$ENV_FILE" ]; then
-    echo " warn  config.env not found — run: cp config.tpl config.env" >&2
+    echo " warn  server.env not found — cp server.tpl server.env" >&2
     ENV_FILE="/dev/null"
 elif ! grep -q '^HF_TOKEN=.' "$ENV_FILE" || grep -q 'your_token_here' "$ENV_FILE"; then
-    echo " warn  HF_TOKEN not set in config.env" >&2
+    echo " warn  HF_TOKEN not set in server.env" >&2
 fi
 
 run_docker \

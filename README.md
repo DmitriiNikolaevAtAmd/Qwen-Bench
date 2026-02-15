@@ -5,8 +5,11 @@ GPU training benchmark comparing AMD and NVIDIA platforms using NeMo/Megatron.
 ## Quick Start
 
 ```bash
-cp config.tpl config.env
-# set your HF_TOKEN
+# on training servers:
+cp server.tpl server.env   # set HF_TOKEN
+
+# on local machine:
+cp local.tpl local.env     # set CUDA_SERVER, ROCM_SERVER, paths
 
 ./scripts/build.sh
 ./scripts/cli.sh stage=data
@@ -177,7 +180,8 @@ ekviduel/
 │   ├── shell.sh
 │   └── cli.sh
 ├── output/
-├── config.tpl
+├── server.tpl
+├── local.tpl
 ├── .gitignore
 └── .dockerignore
 ```

@@ -4,10 +4,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-CONFIG="$ROOT_DIR/config.env"
+CONFIG="$ROOT_DIR/local.env"
 
 if [[ ! -f "$CONFIG" ]]; then
-    echo "Error: $CONFIG not found. Copy config.tpl and fill in your values."
+    echo "Error: $CONFIG not found. Run: cp local.tpl local.env"
     exit 1
 fi
 
