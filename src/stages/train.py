@@ -91,9 +91,10 @@ def run(cfg: DictConfig) -> None:
     if f.turbo_attention:
         os.environ["USE_TURBO_ATTENTION"] = "1"
 
-    # Set both names -- ROCm/HIP may still look for the old CUDA name
-    os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+    # expandable_segments is only supported on CUDA, not ROCm/HIP
+    is_rocm = hasattr(torch.version, "hip") and torch.version.hip is not None
+    if not is_rocm:
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
     # Required by Megatron when using tensor or context parallelism
     if int(t.parallel.tensor) > 1 or int(t.parallel.context) > 1:
@@ -112,6 +113,18 @@ def run(cfg: DictConfig) -> None:
         tokenizer_path, trust_remote_code=True,
     )
     vocab_size = len(tokenizer)
+
+    # If tokenizer was loaded from a remote HF repo, save it locally so the
+    # torchrun workers (all ranks) can load from cache without network access.
+    data_dir = Path(cfg.paths.data_dir)
+    local_tok_dir = data_dir / "tokenizers" / cfg.model.name
+    if not local_tok_dir.is_dir():
+        local_tok_dir.mkdir(parents=True, exist_ok=True)
+        tokenizer.save_pretrained(str(local_tok_dir))
+        tokenizer_path = str(local_tok_dir)
+        _kv(cfg, "cached", str(local_tok_dir))
+    elif str(local_tok_dir) != tokenizer_path:
+        tokenizer_path = str(local_tok_dir)
 
     _kv(cfg, "path", tokenizer_path)
     _kv(cfg, "vocab", f"{vocab_size:,}")
@@ -176,8 +189,13 @@ def run(cfg: DictConfig) -> None:
     _kv(cfg, "worker", worker)
     console.print()
 
+    # Workers should read from local cache only -- no HF Hub network calls.
+    env = os.environ.copy()
+    env["HF_HUB_OFFLINE"] = "1"
+    env["TRANSFORMERS_OFFLINE"] = "1"
+
     t0 = time.time()
-    result = subprocess.run(cmd, env=os.environ.copy())
+    result = subprocess.run(cmd, env=env)
 
     elapsed = time.time() - t0
 
