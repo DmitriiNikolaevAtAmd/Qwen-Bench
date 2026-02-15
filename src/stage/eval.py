@@ -1,8 +1,13 @@
 """Eval stage: extract metrics from training logs and build dashboard.
 
-1. Scan output_dir for Megatron training logs.
-2. Extract metrics (loss, lr, step time, grad norm, memory) via regex.
-3. Save per-run JSON benchmark files.
+Supports two workflows:
+  a) Post-training (inside container): extract from logs -> save JSON -> plot
+  b) Local comparison: existing JSONs in output subdirs -> plot master compare.png
+
+Steps:
+1. Check for existing benchmark JSONs (recursive scan).
+2. If none found, extract from training logs and create them.
+3. Load all benchmark JSONs.
 4. Generate a 2x3 comparison plot (compare.png).
 5. Print a summary table.
 """
@@ -45,58 +50,49 @@ def run(cfg: DictConfig) -> None:
     t = cfg.training
     output_dir = Path(cfg.paths.output_dir)
 
-    # -- 1. Find training log(s) ----------------------------------------------
-    _step(cfg, 1, "Scan", f"Looking for training logs in {output_dir}")
+    # -- 1. Scan for existing benchmark JSONs ---------------------------------
+    _step(cfg, 1, "Scan", f"Looking for benchmarks in {output_dir}")
 
-    log_files = sorted(output_dir.glob("**/*.log")) + sorted(output_dir.glob("**/stdout*"))
-    # Also look for logs redirected to .txt
-    log_files += sorted(output_dir.glob("**/*.txt"))
+    existing_jsons = sorted(output_dir.glob("**/train_*.json"))
+    _kv(cfg, "json files", str(len(existing_jsons)))
 
-    _kv(cfg, "log files", str(len(log_files)))
+    # -- 2. Extract from logs (only if no JSONs found) ------------------------
+    if not existing_jsons:
+        log_files = sorted(output_dir.glob("**/*.log")) + sorted(output_dir.glob("**/stdout*"))
+        log_files += sorted(output_dir.glob("**/*.txt"))
+        _kv(cfg, "log files", str(len(log_files)))
+        console.print()
+
+        _step(cfg, 2, "Extract", "Parsing Megatron log output")
+
+        for log_file in log_files:
+            cb = extract_from_log(
+                log_file=str(log_file),
+                output_dir=str(output_dir),
+                model_name=m.get("name", m.get("display_name", "model")),
+                platform="auto",
+                framework="megatron",
+                dataset=t.get("dataset", "benchmark"),
+                num_gpus=getattr(t.parallel, "data", 1) if hasattr(t, "parallel") else 1,
+                global_batch_size=t.get("global_batch_size"),
+                sequence_length=t.get("seq_length"),
+            )
+
+            # Populate parallelism from config (may be overridden by log parsing)
+            if hasattr(t, "parallel"):
+                cb.tensor_model_parallel_size = getattr(t.parallel, "tensor", 1) or 1
+                cb.pipeline_model_parallel_size = getattr(t.parallel, "pipeline", 1) or 1
+                cb.data_parallel_size = getattr(t.parallel, "data", 1) or 1
+            cb.micro_batch_size = cb.micro_batch_size or t.get("micro_batch_size")
+            cb.gradient_accumulation_steps = t.get("gradient_accumulation", 1) or 1
+
+            if cb.step_times:
+                filepath = cb.save(max_steps=t.get("train_iters"))
+                _kv(cfg, "saved", str(filepath))
+
     console.print()
 
-    # -- 2. Extract metrics from each log -------------------------------------
-    _step(cfg, 2, "Extract", "Parsing Megatron log output")
-
-    json_files_created = []
-    for log_file in log_files:
-        cb = extract_from_log(
-            log_file=str(log_file),
-            output_dir=str(output_dir),
-            model_name=m.get("name", m.get("display_name", "model")),
-            platform="auto",
-            framework="megatron",
-            dataset=t.get("dataset", "benchmark"),
-            num_gpus=getattr(t.parallel, "data", 1) if hasattr(t, "parallel") else 1,
-            global_batch_size=t.get("global_batch_size"),
-            sequence_length=t.get("seq_length"),
-        )
-
-        # Populate parallelism from config (may be overridden by log parsing)
-        if hasattr(t, "parallel"):
-            cb.tensor_model_parallel_size = getattr(t.parallel, "tensor", 1) or 1
-            cb.pipeline_model_parallel_size = getattr(t.parallel, "pipeline", 1) or 1
-            cb.data_parallel_size = getattr(t.parallel, "data", 1) or 1
-        cb.micro_batch_size = cb.micro_batch_size or t.get("micro_batch_size")
-        cb.gradient_accumulation_steps = t.get("gradient_accumulation", 1) or 1
-
-        if cb.step_times:
-            filepath = cb.save(max_steps=t.get("train_iters"))
-            json_files_created.append(filepath)
-            _kv(cfg, "saved", str(filepath))
-
-    if not json_files_created:
-        # No logs found -- check if JSON benchmarks already exist
-        existing = list(output_dir.glob("train_*.json"))
-        if not existing:
-            console.print(f"  [{c.warn}]No training logs or benchmark files found.[/{c.warn}]")
-            console.print()
-            return
-
-    _kv(cfg, "benchmarks", str(len(json_files_created)))
-    console.print()
-
-    # -- 3. Load all benchmark JSONs ------------------------------------------
+    # -- 3. Load all benchmark JSONs (recursive) ------------------------------
     _step(cfg, 3, "Load", f"Reading benchmark files from {output_dir}")
 
     benchmarks = load_benchmarks(str(output_dir))
@@ -104,7 +100,7 @@ def run(cfg: DictConfig) -> None:
     console.print()
 
     if not benchmarks:
-        console.print(f"  [{c.warn}]No benchmark data to compare.[/{c.warn}]")
+        console.print(f"  [{c.warn}]No benchmark data found.[/{c.warn}]")
         console.print()
         return
 
@@ -120,18 +116,6 @@ def run(cfg: DictConfig) -> None:
     _step(cfg, 5, "Summary", "Performance comparison")
 
     summary_text = print_summary(benchmarks)
-
-    info = Table.grid(padding=(0, 2))
-    info.add_column(style="dim")
-    info.add_column()
-    for line in summary_text.strip().split("\n"):
-        if line.startswith("-"):
-            continue
-        parts = line.split(None, 1)
-        if len(parts) == 2:
-            info.add_row(parts[0], parts[1])
-        elif parts:
-            info.add_row("", parts[0])
 
     console.print(Panel(
         summary_text,

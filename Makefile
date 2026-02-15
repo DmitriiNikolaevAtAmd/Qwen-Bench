@@ -28,6 +28,10 @@ data: ## Prepare dataset (download, split, store metadata)
 train: ## Run training with NeMo/Megatron
 	@./scripts/cli.sh stage=train $(ARGS)
 
+.PHONY: eval
+eval: ## Evaluate: load benchmarks, build compare.png
+	@python scripts/eval.py $(ARGS)
+
 .PHONY: wrap
 wrap: ## Package outputs into output.zip
 	@./scripts/cli.sh stage=wrap $(ARGS)

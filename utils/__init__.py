@@ -1,13 +1,13 @@
 # utils package for ekviduel
-from util.dataset import (
+from utils.dataset import (
     check_dataset_exists,
     generate_dataset_info,
     get_dataset_stats,
     jsonl_to_alpaca,
     jsonl_to_sharegpt,
 )
-from util.hardware import detect_gpu_info, detect_platform, get_gpu_core_count
-from util.logging import (
+from utils.hardware import detect_gpu_info, detect_platform, get_gpu_core_count
+from utils.logging import (
     extract_metrics_from_log,
     extract_metrics_from_state,
     extract_step_times_from_log,
@@ -16,7 +16,7 @@ from util.logging import (
     print_summary,
     round_floats,
 )
-from util.monitor import BenchmarkCallback
+from utils.monitor import BenchmarkCallback
 
 __all__ = [
     # dataset

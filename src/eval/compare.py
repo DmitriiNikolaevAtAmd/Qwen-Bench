@@ -85,7 +85,7 @@ def load_benchmarks(results_dir: str) -> dict[str, dict]:
     results_path = Path(results_dir)
     benchmarks: dict[str, dict] = {}
 
-    for json_file in sorted(results_path.glob("train_*.json")):
+    for json_file in sorted(results_path.glob("**/train_*.json")):
         try:
             with open(json_file, "r") as f:
                 data = json.load(f)
