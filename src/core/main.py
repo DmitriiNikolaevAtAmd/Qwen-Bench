@@ -3,7 +3,6 @@ import os
 import time
 import urllib.request
 
-import hydra
 from omegaconf import DictConfig, OmegaConf
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -95,8 +94,7 @@ def _stage_close(cfg: DictConfig, name: str, elapsed: float) -> None:
     console.print()
 
 
-@hydra.main(version_base=None, config_path="../../config", config_name="config")
-def main(cfg: DictConfig) -> None:
+def run(cfg: DictConfig) -> None:
     from src.core.themes import apply_theme
     apply_theme(cfg.theme)
 

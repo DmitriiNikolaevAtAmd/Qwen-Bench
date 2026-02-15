@@ -52,8 +52,9 @@ ENV PYTHONPATH="/opt/megatron"
 COPY . /workspace/code/
 
 # Suppress NVIDIA container startup banner
-RUN rm -f /etc/nvidia/entrypoint.d/10-banner.sh \
-         /etc/nvidia/entrypoint.d/15-container-copyright.sh 2>/dev/null || true
+RUN rm -rf /etc/nvidia/entrypoint.d 2>/dev/null; \
+    mkdir -p /etc/nvidia/entrypoint.d
+ENTRYPOINT []
 
 EXPOSE 8000
 
